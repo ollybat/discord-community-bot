@@ -27,6 +27,7 @@ const commands = [
   new SlashCommandBuilder().setName('ping').setDescription('Check bot health, latency, and uptime.'),
   new SlashCommandBuilder().setName('status').setDescription('Check hosting, Discord connection, and bot status.'),
   new SlashCommandBuilder().setName('membercount').setDescription('Show a clean member count for this server.'),
+  new SlashCommandBuilder().setName('channelcount').setDescription('Show members in this server and people currently in voice channels.'),
   new SlashCommandBuilder().setName('servericon').setDescription('Show this server icon in full size.'),
   new SlashCommandBuilder().setName('invite').setDescription('Get a safe invite link for this bot.'),
   new SlashCommandBuilder().setName('permissions').setDescription('Check the bot permissions in this channel.'),
@@ -89,6 +90,7 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.MessageContent,
   ],
 });
@@ -107,7 +109,7 @@ const maintenance = setInterval(() => {
   for (const [key, timestamp] of commandCooldowns) if (timestamp < Date.now()) commandCooldowns.delete(key);
   for (const [key, timestamp] of spamCooldowns) if (timestamp < cutoff) spamCooldowns.delete(key);
 }, 60_000);
-const commandList = '/ping, /help, /setup, /status, /membercount, /servericon, /invite, /permissions, /botinfo, /serverroles, /serverinfo, /userinfo, /avatar, /roll, /coinflip, /8ball, /choose, /rps, /ship, /roast, /fact, /poll, /announce, /clear, /kick, /ban';
+const commandList = '/ping, /help, /setup, /status, /membercount, /channelcount, /servericon, /invite, /permissions, /botinfo, /serverroles, /serverinfo, /userinfo, /avatar, /roll, /coinflip, /8ball, /choose, /rps, /ship, /roast, /fact, /poll, /announce, /clear, /kick, /ban';
 const eightBallAnswers = ['Absolutely yes.', 'Probably yes.', 'It is looking good.', 'Ask again later.', 'I am not sure yet.', 'Probably not.', 'The signs say no.', 'Absolutely not.'];
 const facts = ['The first video game easter egg is commonly credited to Adventure for the Atari 2600.', 'Discord was originally built for people who wanted an easier way to talk while gaming.', 'A good community grows faster when new players get a friendly welcome.', 'The best moderation tool is clear rules applied consistently.', 'Taking short breaks can make long gaming sessions more fun.'];
 const roasts = ['has the confidence of a final boss and the strategy of a tutorial bot.', 'could lose a game of rock paper scissors to a loading screen.', 'is proof that having a plan and following it are two different skills.', 'brings main-character energy to every side quest.', 'is not lagging; the brain is just buffering.'];
@@ -136,6 +138,11 @@ const commandHelp = new EmbedBuilder()
     { name: '⚙️ Setup', value: '`/setup` shows the complete administrator setup guide' },
   )
   .setFooter({ text: 'Free to use • Keep the bot token private' });
+const totalMembers = () => client.guilds.cache.reduce((total, guild) => total + (guild.memberCount ?? 0), 0);
+const updatePresence = () => {
+  if (!client.user) return;
+  client.user.setPresence({ activities: [{ name: `${totalMembers().toLocaleString()} members • /help` }], status: 'online' });
+};
 const setupEmbed = () => new EmbedBuilder()
   .setColor(0x57f287)
   .setTitle('Bot setup guide')
@@ -151,11 +158,14 @@ const setupEmbed = () => new EmbedBuilder()
   .setFooter({ text: 'Free and open starter bot • Keep your token private' });
 
 client.once('ready', (readyClient) => {
-  readyClient.user.setPresence({ activities: [{ name: '/help • free community bot' }], status: 'online' });
-  log('log', `Logged in as ${readyClient.user.tag} in ${readyClient.guilds.cache.size} server(s).`);
+  updatePresence();
+  log('log', `Logged in as ${readyClient.user.tag} in ${readyClient.guilds.cache.size} server(s), serving ${totalMembers().toLocaleString()} members.`);
 });
 
+client.on('guildCreate', updatePresence);
+client.on('guildDelete', updatePresence);
 client.on('guildMemberAdd', async (member) => {
+  updatePresence();
   if (!process.env.WELCOME_CHANNEL_ID) return;
   const channel = member.guild.channels.cache.get(process.env.WELCOME_CHANNEL_ID);
   if (channel?.isTextBased()) {
@@ -163,6 +173,9 @@ client.on('guildMemberAdd', async (member) => {
     await channel.send({ embeds: [welcome], allowedMentions: { users: [member.id] } }).catch((error) => log('error', 'Welcome message failed:', error.message));
   }
 });
+
+client.on('guildMemberRemove', updatePresence);
+setInterval(updatePresence, 5 * 60_000);
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot || !message.guild) return;
@@ -208,6 +221,18 @@ client.on('interactionCreate', async (interaction) => {
       { name: 'Bots', value: `${bots ?? 'Unavailable'}`, inline: true },
       { name: 'Server ID', value: interaction.guild.id, inline: true },
     ).setFooter({ text: 'Counts use the members available to the bot' })] });
+  } else if (interaction.commandName === 'channelcount') {
+    const voiceChannels = interaction.guild.channels.cache.filter((channel) => channel.isVoiceBased());
+    const activeVoiceMembers = voiceChannels.reduce((total, channel) => total + channel.members.size, 0);
+    const textChannels = interaction.guild.channels.cache.filter((channel) => channel.isTextBased()).size;
+    const voiceChannelList = voiceChannels.filter((channel) => channel.members.size > 0).map((channel) => `${channel.name}: ${channel.members.size}`).join('\n').slice(0, 900) || 'Nobody is in a voice channel right now.';
+    await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle(`📊 ${interaction.guild.name} live counts`).addFields(
+      { name: 'Total server members', value: `${interaction.guild.memberCount}`, inline: true },
+      { name: 'Currently in voice', value: `${activeVoiceMembers}`, inline: true },
+      { name: 'Text channels', value: `${textChannels}`, inline: true },
+      { name: 'Voice channels', value: `${voiceChannels.size}`, inline: true },
+      { name: 'Active voice rooms', value: voiceChannelList, inline: false },
+    ).setFooter({ text: 'Voice counts are live when the command runs' }).setTimestamp()] });
   } else if (interaction.commandName === 'servericon') {
     const icon = interaction.guild.iconURL({ size: 4096, extension: 'png' });
     if (!icon) return interaction.reply({ embeds: [new EmbedBuilder().setColor(0xfee75c).setTitle('🖼️ No server icon').setDescription('This server has not set a custom icon yet.')], ephemeral: true });
