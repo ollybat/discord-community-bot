@@ -30,6 +30,9 @@ const commands = [
   new SlashCommandBuilder().setName('servericon').setDescription('Show this server icon in full size.'),
   new SlashCommandBuilder().setName('invite').setDescription('Get a safe invite link for this bot.'),
   new SlashCommandBuilder().setName('permissions').setDescription('Check the bot permissions in this channel.'),
+  new SlashCommandBuilder().setName('botinfo').setDescription('Show information about this bot and its features.'),
+  new SlashCommandBuilder().setName('channelinfo').setDescription('Show information about the current channel.'),
+  new SlashCommandBuilder().setName('serverroles').setDescription('List the most important roles in this server.'),
   new SlashCommandBuilder().setName('roll').setDescription('Roll a dice.').addIntegerOption((option) => option.setName('sides').setDescription('Number of sides, from 2 to 1000.').setMinValue(2).setMaxValue(1000)),
   new SlashCommandBuilder().setName('coinflip').setDescription('Flip a coin.'),
   new SlashCommandBuilder().setName('8ball').setDescription('Ask the magic 8-ball a question.').addStringOption((option) => option.setName('question').setDescription('Your question.').setMaxLength(250).setRequired(true)),
@@ -105,7 +108,7 @@ const maintenance = setInterval(() => {
   for (const [key, timestamp] of commandCooldowns) if (timestamp < Date.now()) commandCooldowns.delete(key);
   for (const [key, timestamp] of spamCooldowns) if (timestamp < cutoff) spamCooldowns.delete(key);
 }, 60_000);
-const commandList = '/ping, /help, /setup, /status, /membercount, /servericon, /invite, /permissions, /serverinfo, /userinfo, /avatar, /roll, /coinflip, /8ball, /choose, /rps, /ship, /roast, /fact, /poll, /announce, /clear, /kick, /ban';
+const commandList = '/ping, /help, /setup, /status, /membercount, /servericon, /invite, /permissions, /botinfo, /channelinfo, /serverroles, /serverinfo, /userinfo, /avatar, /roll, /coinflip, /8ball, /choose, /rps, /ship, /roast, /fact, /poll, /announce, /clear, /kick, /ban';
 const eightBallAnswers = ['Absolutely yes.', 'Probably yes.', 'It is looking good.', 'Ask again later.', 'I am not sure yet.', 'Probably not.', 'The signs say no.', 'Absolutely not.'];
 const facts = ['The first video game easter egg is commonly credited to Adventure for the Atari 2600.', 'Discord was originally built for people who wanted an easier way to talk while gaming.', 'A good community grows faster when new players get a friendly welcome.', 'The best moderation tool is clear rules applied consistently.', 'Taking short breaks can make long gaming sessions more fun.'];
 const roasts = ['has the confidence of a final boss and the strategy of a tutorial bot.', 'could lose a game of rock paper scissors to a loading screen.', 'is proof that having a plan and following it are two different skills.', 'brings main-character energy to every side quest.', 'is not lagging; the brain is just buffering.'];
@@ -127,7 +130,7 @@ const commandHelp = new EmbedBuilder()
   .setDescription('Helpful tools for your server. Use a command below to get started.')
   .addFields(
     { name: '📌 General', value: '`/ping` health • `/status` hosting status • `/membercount` members • `/serverinfo` server details • `/servericon` server icon • `/userinfo` member details • `/avatar` profile picture' },
-    { name: '🔗 Tools', value: '`/invite` bot invite link • `/permissions` channel permission check' },
+    { name: '🔗 Tools', value: '`/invite` bot invite link • `/permissions` channel permission check • `/botinfo` bot details • `/channelinfo` channel details • `/serverroles` role overview' },
     { name: '🎮 Fun & Games', value: '`/roll` dice • `/coinflip` coin • `/8ball` answer • `/choose` random choice • `/rps` battle • `/ship` friendship score • `/roast` playful roast • `/fact` fun fact • `/poll` poll' },
     { name: '📣 Community', value: '`/announce` post a polished announcement' },
     { name: '🛡️ Moderation', value: '`/clear` remove messages • `/kick` remove a member • `/ban` ban a member' },
@@ -220,6 +223,29 @@ client.on('interactionCreate', async (interaction) => {
     const needed = ['ViewChannel', 'SendMessages', 'EmbedLinks', 'AddReactions', 'ManageMessages', 'KickMembers', 'BanMembers', 'ModerateMembers'];
     const lines = needed.map((name) => `${permissions?.has(PermissionFlagsBits[name]) ? '✅' : '❌'} ${name}`).join('\n');
     await interaction.reply({ embeds: [new EmbedBuilder().setColor(permissions?.has(PermissionFlagsBits.SendMessages) ? 0x57f287 : 0xed4245).setTitle('🔐 Channel permissions').setDescription(lines).addFields({ name: 'How to fix', value: 'Ask an administrator to update the bot role or this channel override. The bot role must also be above members it moderates.' })], ephemeral: true });
+  } else if (interaction.commandName === 'botinfo') {
+    const uptime = Math.floor(process.uptime());
+    await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle('🤖 Free Community Bot').setDescription('A friendly, privacy-conscious bot for gaming and community servers.').setThumbnail(client.user.displayAvatarURL({ size: 256 })).addFields(
+      { name: 'Version', value: '1.1.0', inline: true },
+      { name: 'Commands', value: `${commands.length}`, inline: true },
+      { name: 'Servers', value: `${client.guilds.cache.size}`, inline: true },
+      { name: 'Uptime', value: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m`, inline: true },
+      { name: 'Source', value: '[Open source on GitHub](https://github.com/ollyjaxk-byte/discord-community-bot)', inline: true },
+      { name: 'License', value: 'MIT • Free to use', inline: true },
+    ).setFooter({ text: 'Run /help to explore every command' })] });
+  } else if (interaction.commandName === 'channelinfo') {
+    const channel = interaction.channel;
+    await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle(`📺 #${channel.name}`).addFields(
+      { name: 'Type', value: channel.type.toString(), inline: true },
+      { name: 'Channel ID', value: channel.id, inline: true },
+      { name: 'Created', value: `<t:${Math.floor(channel.createdTimestamp / 1000)}:D>`, inline: true },
+      { name: 'Position', value: `${channel.position}`, inline: true },
+      { name: 'Category', value: channel.parent?.name ?? 'No category', inline: true },
+    ).setFooter({ text: `Requested by ${interaction.user.tag}` })] });
+  } else if (interaction.commandName === 'serverroles') {
+    const roles = interaction.guild.roles.cache.sort((a, b) => b.position - a.position).filter((role) => role.id !== interaction.guild.id).first(15);
+    const roleText = roles.length ? roles.map((role) => `${role.mention} • ${role.members.size} member${role.members.size === 1 ? '' : 's'}`).join('\n').slice(0, 4000) : 'No custom roles found.';
+    await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle(`🎭 ${interaction.guild.name} roles`).setDescription(roleText).setFooter({ text: 'Showing the 15 highest roles' })] });
   } else if (interaction.commandName === 'ping') {
     const uptime = Math.floor(process.uptime());
     const hours = Math.floor(uptime / 3600);
@@ -351,6 +377,8 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 
+client.on('warn', (message) => log('warn', 'Discord warning:', message));
+client.on('rateLimit', (rateLimitData) => log('warn', 'Discord rate limit reached:', JSON.stringify({ timeout: rateLimitData.timeout, route: rateLimitData.route, method: rateLimitData.method })));
 client.on('error', (error) => log('error', 'Discord client error:', error.message));
 process.on('unhandledRejection', (error) => log('error', 'Unhandled promise rejection:', error instanceof Error ? error.message : String(error)));
 process.on('uncaughtException', (error) => { log('error', 'Uncaught exception:', error.message); process.exitCode = 1; });
