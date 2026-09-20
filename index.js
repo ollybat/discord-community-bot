@@ -19,6 +19,7 @@ for (const name of required) {
 
 const commands = [
   new SlashCommandBuilder().setName('ping').setDescription('Check bot health, latency, and uptime.'),
+  new SlashCommandBuilder().setName('status').setDescription('Check hosting, Discord connection, and bot status.'),
   new SlashCommandBuilder().setName('roll').setDescription('Roll a dice.').addIntegerOption((option) => option.setName('sides').setDescription('Number of sides, from 2 to 1000.').setMinValue(2).setMaxValue(1000)),
   new SlashCommandBuilder().setName('coinflip').setDescription('Flip a coin.'),
   new SlashCommandBuilder().setName('8ball').setDescription('Ask the magic 8-ball a question.').addStringOption((option) => option.setName('question').setDescription('Your question.').setMaxLength(250).setRequired(true)),
@@ -87,13 +88,24 @@ const commandList = '/ping, /help, /setup, /serverinfo, /userinfo, /avatar, /rol
 const eightBallAnswers = ['Absolutely yes.', 'Probably yes.', 'It is looking good.', 'Ask again later.', 'I am not sure yet.', 'Probably not.', 'The signs say no.', 'Absolutely not.'];
 const facts = ['The first video game easter egg is commonly credited to Adventure for the Atari 2600.', 'Discord was originally built for people who wanted an easier way to talk while gaming.', 'A good community grows faster when new players get a friendly welcome.', 'The best moderation tool is clear rules applied consistently.', 'Taking short breaks can make long gaming sessions more fun.'];
 const roasts = ['has the confidence of a final boss and the strategy of a tutorial bot.', 'could lose a game of rock paper scissors to a loading screen.', 'is proof that having a plan and following it are two different skills.', 'brings main-character energy to every side quest.', 'is not lagging; the brain is just buffering.'];
-const moves = { rock: '🪨', paper: '📄', scissors: '✂️' }; '/ping, /help, /setup, /serverinfo, /userinfo, /avatar, /poll, /announce, /clear, /kick, /ban';
+const moves = { rock: '🪨', paper: '📄', scissors: '✂️' };
+const errorEmbed = (code = 'UNKNOWN') => new EmbedBuilder()
+  .setColor(0xed4245)
+  .setTitle('⚠️ Something went wrong')
+  .setDescription('The command could not finish. Your server and account are safe — please try again in a moment.')
+  .addFields(
+    { name: 'Error code', value: `\`${code}\``, inline: true },
+    { name: 'What to check', value: 'Check the bot hosting logs, Discord status, and bot permissions in this channel.' },
+    { name: 'Need more help?', value: 'Run `/status`, then check the hosting dashboard or terminal. Never share your bot token.' },
+  )
+  .setFooter({ text: 'Free Community Bot • Friendly error reporting' })
+  .setTimestamp();
 const commandHelp = new EmbedBuilder()
   .setColor(0x5865f2)
   .setTitle('Free Community Bot')
   .setDescription('Helpful tools for your server. Use a command below to get started.')
   .addFields(
-    { name: '📌 General', value: '`/ping` health • `/serverinfo` server details • `/userinfo` member details • `/avatar` profile picture' },
+    { name: '📌 General', value: '`/ping` health • `/status` hosting status • `/serverinfo` server details • `/userinfo` member details • `/avatar` profile picture' },
     { name: '🎮 Fun & Games', value: '`/roll` dice • `/coinflip` coin • `/8ball` answer • `/choose` random choice • `/rps` battle • `/ship` friendship score • `/roast` playful roast • `/fact` fun fact • `/poll` poll' },
     { name: '📣 Community', value: '`/announce` post a polished announcement' },
     { name: '🛡️ Moderation', value: '`/clear` remove messages • `/kick` remove a member • `/ban` ban a member' },
@@ -162,7 +174,8 @@ client.on('interactionCreate', async (interaction) => {
     return;
   }
 
-  if (interaction.commandName === 'ping') {
+  try {
+    if (interaction.commandName === 'ping') {
     const uptime = Math.floor(process.uptime());
     const hours = Math.floor(uptime / 3600);
     const minutes = Math.floor((uptime % 3600) / 60);
@@ -175,6 +188,18 @@ client.on('interactionCreate', async (interaction) => {
       { name: 'Servers', value: `${client.guilds.cache.size}`, inline: true },
       { name: 'Node.js', value: process.version, inline: true },
     ).setFooter({ text: 'Healthy and ready to help' })] });
+  } else if (interaction.commandName === 'status') {
+    const uptime = Math.floor(process.uptime());
+    const connected = client.ws.status === 0;
+    const memory = Math.round(process.memoryUsage().rss / 1024 / 1024);
+    await interaction.reply({ embeds: [new EmbedBuilder().setColor(connected && client.ws.ping < 500 ? 0x57f287 : 0xed4245).setTitle(connected ? '✅ Bot status: online' : '❌ Bot status: connection problem').setDescription(connected ? 'The bot process is running and connected to Discord.' : 'The process is running, but the Discord connection needs attention.').addFields(
+      { name: 'Discord connection', value: connected ? 'Connected' : 'Disconnected', inline: true },
+      { name: 'Latency', value: `${client.ws.ping}ms`, inline: true },
+      { name: 'Servers', value: `${client.guilds.cache.size}`, inline: true },
+      { name: 'Uptime', value: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${uptime % 60}s`, inline: true },
+      { name: 'Memory', value: `${memory} MB`, inline: true },
+      { name: 'Next step', value: connected ? 'Commands should work. If one fails, use its error code.' : 'Check hosting logs and Discord Developer Portal status.', inline: false },
+    ).setFooter({ text: 'Status is measured by this bot process' }).setTimestamp()] });
   } else if (interaction.commandName === 'roll') {
     const sides = interaction.options.getInteger('sides') ?? 6;
     const result = Math.floor(Math.random() * sides) + 1;
@@ -271,6 +296,13 @@ client.on('interactionCreate', async (interaction) => {
     if (interaction.commandName === 'kick') await member.kick(reason);
     else await member.ban({ reason });
     await interaction.reply(`${interaction.commandName === 'kick' ? 'Kicked' : 'Banned'} **${user.tag}**. Reason: ${reason}`);
+    }
+  } catch (error) {
+    const errorCode = `${interaction.commandName.toUpperCase().slice(0, 8)}-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+    console.error(`[${errorCode}] Command ${interaction.commandName} failed:`, error);
+    const response = { embeds: [errorEmbed(errorCode)], ephemeral: true, allowedMentions: { parse: [] } };
+    if (interaction.replied || interaction.deferred) await interaction.followUp(response).catch(() => {});
+    else await interaction.reply(response).catch(() => {});
   }
 });
 
