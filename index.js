@@ -17,10 +17,13 @@ for (const name of required) {
   }
 }
 
-const snowflake = /^\d{17,20}$/;
+// Discord snowflakes are numeric. Do not over-constrain length: older IDs can be shorter.
+const snowflake = /^\d+$/;
 for (const name of ['CLIENT_ID', 'GUILD_ID']) {
   if (process.env[name]?.trim() && !snowflake.test(process.env[name].trim())) {
-    console.error(`${name} must be a Discord ID made only of numbers. Copy it from Developer Mode / Developer Portal; do not put the bot token there.`);
+    const raw = process.env[name] ?? '';
+    const safeShape = raw.trim().replace(/\d/g, '0').slice(0, 32);
+    console.error(`${name} must contain only the numeric Discord ID. Received length=${raw.trim().length}, shape=${safeShape || '(empty)'}. Copy the Application ID from Developer Portal; do not include quotes or the bot token.`);
     process.exit(1);
   }
 }
