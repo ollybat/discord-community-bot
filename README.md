@@ -1,52 +1,78 @@
 # Free Discord Community Bot
 
-A polished, free Discord bot for gaming and community servers. It combines fun commands, useful server tools, moderation, welcome messages, diagnostics, safe error cards, and clean embeds.
+[![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![discord.js](https://img.shields.io/badge/discord.js-v14-5865F2?logo=discord&logoColor=white)](https://discord.js.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+A free Discord bot for gaming and community servers. It combines polished embeds, fun games, server tools, moderation, welcome messages, diagnostics, safe error cards, and an administrator setup guide.
+
+> **Security:** this repository contains source code only. Never commit `.env` or share a Discord bot token.
+
+## Highlights
+
+- 🎮 Player games: dice, coin flip, 8-ball, random choice, RPS, friendship scores, roasts, and facts
+- 🛡️ Moderation: clear, kick, ban, cooldowns, role-hierarchy checks, and spam protection
+- 🔧 Server tools: server information, member counts, server icon, invite helper, and permission diagnostics
+- 📊 Community: multi-choice polls, rich announcements, welcome embeds, and private help/setup guides
+- 🩺 Reliability: `/ping`, `/status`, structured error codes, graceful login errors, and hosting guidance
 
 ## Commands
 
-### Health and setup
-- `/ping` — latency and health.
-- `/status` — Discord connection, uptime, memory, hosting-process status, and server count.
-- `/setup` — administrator setup guide.
-- `/permissions` — checks the bot’s effective permissions in the current channel.
-- `/invite` — generates a safe invite link for this bot.
+| Category | Commands |
+| --- | --- |
+| Diagnostics | `/ping`, `/status`, `/permissions` |
+| Setup | `/setup`, `/invite` |
+| Server | `/serverinfo`, `/membercount`, `/servericon` |
+| Members | `/userinfo`, `/avatar` |
+| Fun | `/roll`, `/coinflip`, `/8ball`, `/choose`, `/rps`, `/ship`, `/roast`, `/fact` |
+| Community | `/poll`, `/announce` |
+| Moderation | `/clear`, `/kick`, `/ban` |
 
-### Server and members
-- `/serverinfo` — detailed server information.
-- `/membercount` — people, bots, and total members.
-- `/servericon` — opens the server icon in full size.
-- `/userinfo` — member details and roles.
-- `/avatar` — full-size profile image.
+## Quick start
 
-### Fun and games
-- `/roll`, `/coinflip`, `/8ball`, `/choose`
-- `/rps`, `/ship`, `/roast`, `/fact`
-- `/poll` — polished multi-choice reaction poll.
+### 1. Create the Discord application
 
-### Community and moderation
-- `/announce` — rich announcement embed.
-- `/clear` — remove recent messages.
-- `/kick` and `/ban` — protected moderation actions.
-- Welcome messages and rate-limited spam protection.
+Create an application in the [Discord Developer Portal](https://discord.com/developers/applications), add a Bot user, and copy its token. Keep it secret.
 
-## Error and hosting status system
+### 2. Configure environment variables
 
-Failed commands return a private red error card with a unique code and suggestions to check hosting logs, Discord status, and permissions. `/status` reports the bot process health. Detailed failures are logged with the same code; tokens and stack traces are never shown in Discord.
+```bash
+cp .env.example .env
+```
 
-## Setup
+Fill in `DISCORD_TOKEN` and `CLIENT_ID`. Set `GUILD_ID` for quick command updates during development. Set `WELCOME_CHANNEL_ID` for welcome messages.
 
-1. Create an app at https://discord.com/developers/applications and add a Bot user.
-2. Copy `.env.example` to `.env` and fill in `DISCORD_TOKEN` and `CLIENT_ID`.
-3. Enable Server Members Intent for welcomes and Message Content Intent for spam protection.
-4. Invite using `bot` and `applications.commands`. Review permissions and do not grant Administrator.
-5. Run `npm install` and `npm start`.
+### 3. Enable intents
 
-Set `GUILD_ID` for fast command updates during development and `WELCOME_CHANNEL_ID` for welcome messages. Never commit `.env` or share your token.
+Enable **Server Members Intent** for welcome messages and **Message Content Intent** for spam protection in the Developer Portal.
 
-## Hosting troubleshooting
+### 4. Install and run
 
-Run `/status`. If it reports a connection problem, inspect the host logs, confirm the process is running, verify the token in the host’s secret settings, and check Discord’s service status. If a command fails, copy only its error code—not credentials.
+```bash
+npm install
+npm run check
+npm start
+```
+
+### 5. Invite the bot
+
+Use the `bot` and `applications.commands` scopes. Grant only the permissions needed by your server. Do not grant `Administrator` unless you fully understand the risk. The bot role must be above members it moderates.
+
+## Error handling and hosting
+
+When a command fails, the bot returns a private red error card with a unique code and troubleshooting steps. The same code is written to the hosting terminal without exposing tokens or stack traces.
+
+Run `/status` to see Discord connectivity, latency, uptime, memory, and server count. If the bot is offline, check the hosting process, secret configuration, Discord Developer Portal, and service status.
+
+## Project files
+
+- `index.js` — bot commands, events, validation, moderation, and error handling
+- `.env.example` — safe configuration template
+- `package.json` — dependencies and scripts
+- `LICENSE` — MIT license
+- `SECURITY.md` — token and vulnerability guidance
+- `CONTRIBUTING.md` — development and pull request guide
 
 ## License
 
-MIT — free to use and modify.
+MIT — free to use and modify. See [LICENSE](LICENSE).
