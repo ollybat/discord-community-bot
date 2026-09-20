@@ -4,7 +4,7 @@
 [![discord.js](https://img.shields.io/badge/discord.js-v14-5865F2?logo=discord&logoColor=white)](https://discord.js.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A free Discord bot for gaming and community servers. It combines polished embeds, fun games, server tools, moderation, welcome messages, diagnostics, safe error cards, and an administrator setup guide.
+A free Discord bot for gaming and community servers. It combines polished embeds, fun games, server tools, moderation, welcome messages, diagnostics, safe error cards, structured logging, memory cleanup, graceful shutdown, and an administrator setup guide.
 
 > **Security:** this repository contains source code only. Never commit `.env` or share a Discord bot token.
 
@@ -14,7 +14,7 @@ A free Discord bot for gaming and community servers. It combines polished embeds
 - 🛡️ Moderation: clear, kick, ban, cooldowns, role-hierarchy checks, and spam protection
 - 🔧 Server tools: server information, member counts, server icon, invite helper, and permission diagnostics
 - 📊 Community: multi-choice polls, rich announcements, welcome embeds, and private help/setup guides
-- 🩺 Reliability: `/ping`, `/status`, structured error codes, graceful login errors, and hosting guidance
+- 🩺 Reliability: `/ping`, `/status`, structured error codes, safe logs, input limits, cooldown cleanup, graceful login errors, and clean shutdown handling
 
 ## Commands
 
@@ -66,7 +66,7 @@ Run `/status` to see Discord connectivity, latency, uptime, memory, and server c
 
 ## Project files
 
-- `index.js` — bot commands, events, validation, moderation, and error handling
+- `index.js` — bot commands, events, validation, moderation, status diagnostics, structured logs, cleanup, and error handling
 - `.env.example` — safe configuration template
 - `package.json` — dependencies and scripts
 - `LICENSE` — MIT license
