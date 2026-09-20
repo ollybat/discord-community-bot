@@ -17,6 +17,14 @@ for (const name of required) {
   }
 }
 
+const snowflake = /^\d{17,20}$/;
+for (const name of ['CLIENT_ID', 'GUILD_ID']) {
+  if (process.env[name]?.trim() && !snowflake.test(process.env[name].trim())) {
+    console.error(`${name} must be a Discord ID made only of numbers. Copy it from Developer Mode / Developer Portal; do not put the bot token there.`);
+    process.exit(1);
+  }
+}
+
 const log = (level, message, details = '') => {
   const suffix = details ? ` ${details}` : '';
   console[level](`[${new Date().toISOString()}] ${message}${suffix}`);
@@ -82,6 +90,7 @@ try {
   log('log', `Registered ${commands.length} slash commands${process.env.GUILD_ID ? ' for the configured guild' : ' globally'}.`);
 } catch (error) {
   log('error', 'Could not register slash commands:', error.message);
+  log('error', 'Check CLIENT_ID: it must be the numeric Application ID, not the bot token.');
   process.exit(1);
 }
 
