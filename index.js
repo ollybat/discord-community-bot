@@ -31,7 +31,6 @@ const commands = [
   new SlashCommandBuilder().setName('invite').setDescription('Get a safe invite link for this bot.'),
   new SlashCommandBuilder().setName('permissions').setDescription('Check the bot permissions in this channel.'),
   new SlashCommandBuilder().setName('botinfo').setDescription('Show information about this bot and its features.'),
-  new SlashCommandBuilder().setName('channelinfo').setDescription('Show information about the current channel.'),
   new SlashCommandBuilder().setName('serverroles').setDescription('List the most important roles in this server.'),
   new SlashCommandBuilder().setName('roll').setDescription('Roll a dice.').addIntegerOption((option) => option.setName('sides').setDescription('Number of sides, from 2 to 1000.').setMinValue(2).setMaxValue(1000)),
   new SlashCommandBuilder().setName('coinflip').setDescription('Flip a coin.'),
@@ -108,7 +107,7 @@ const maintenance = setInterval(() => {
   for (const [key, timestamp] of commandCooldowns) if (timestamp < Date.now()) commandCooldowns.delete(key);
   for (const [key, timestamp] of spamCooldowns) if (timestamp < cutoff) spamCooldowns.delete(key);
 }, 60_000);
-const commandList = '/ping, /help, /setup, /status, /membercount, /servericon, /invite, /permissions, /botinfo, /channelinfo, /serverroles, /serverinfo, /userinfo, /avatar, /roll, /coinflip, /8ball, /choose, /rps, /ship, /roast, /fact, /poll, /announce, /clear, /kick, /ban';
+const commandList = '/ping, /help, /setup, /status, /membercount, /servericon, /invite, /permissions, /botinfo, /serverroles, /serverinfo, /userinfo, /avatar, /roll, /coinflip, /8ball, /choose, /rps, /ship, /roast, /fact, /poll, /announce, /clear, /kick, /ban';
 const eightBallAnswers = ['Absolutely yes.', 'Probably yes.', 'It is looking good.', 'Ask again later.', 'I am not sure yet.', 'Probably not.', 'The signs say no.', 'Absolutely not.'];
 const facts = ['The first video game easter egg is commonly credited to Adventure for the Atari 2600.', 'Discord was originally built for people who wanted an easier way to talk while gaming.', 'A good community grows faster when new players get a friendly welcome.', 'The best moderation tool is clear rules applied consistently.', 'Taking short breaks can make long gaming sessions more fun.'];
 const roasts = ['has the confidence of a final boss and the strategy of a tutorial bot.', 'could lose a game of rock paper scissors to a loading screen.', 'is proof that having a plan and following it are two different skills.', 'brings main-character energy to every side quest.', 'is not lagging; the brain is just buffering.'];
@@ -233,15 +232,6 @@ client.on('interactionCreate', async (interaction) => {
       { name: 'Source', value: '[Open source on GitHub](https://github.com/ollyjaxk-byte/discord-community-bot)', inline: true },
       { name: 'License', value: 'MIT • Free to use', inline: true },
     ).setFooter({ text: 'Run /help to explore every command' })] });
-  } else if (interaction.commandName === 'channelinfo') {
-    const channel = interaction.channel;
-    await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle(`📺 #${channel.name}`).addFields(
-      { name: 'Type', value: channel.type.toString(), inline: true },
-      { name: 'Channel ID', value: channel.id, inline: true },
-      { name: 'Created', value: `<t:${Math.floor(channel.createdTimestamp / 1000)}:D>`, inline: true },
-      { name: 'Position', value: `${channel.position}`, inline: true },
-      { name: 'Category', value: channel.parent?.name ?? 'No category', inline: true },
-    ).setFooter({ text: `Requested by ${interaction.user.tag}` })] });
   } else if (interaction.commandName === 'serverroles') {
     const roles = interaction.guild.roles.cache.sort((a, b) => b.position - a.position).filter((role) => role.id !== interaction.guild.id).first(15);
     const roleText = roles.length ? roles.map((role) => `${role.mention} • ${role.members.size} member${role.members.size === 1 ? '' : 's'}`).join('\n').slice(0, 4000) : 'No custom roles found.';
