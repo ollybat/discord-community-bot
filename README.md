@@ -14,6 +14,7 @@ A free Discord bot for gaming and community servers. It combines polished embeds
 - 🛡️ Moderation: clear, kick, ban, cooldowns, role-hierarchy checks, and spam protection
 - 🔧 Server tools: server information, member counts, live voice counts, server icon, role overview, invite helper, bot info, and permission diagnostics
 - 📈 Presence: the bot bio shows the total member count across all servers it serves
+- 🆘 Support: private setup and troubleshooting guidance inside Discord
 - 📊 Community: multi-choice polls, rich announcements, welcome embeds, and private help/setup guides
 - 🩺 Reliability: `/ping`, `/status`, structured error codes, safe logs, rate-limit warnings, input limits, cooldown cleanup, graceful login errors, and clean shutdown handling
 
@@ -22,7 +23,7 @@ A free Discord bot for gaming and community servers. It combines polished embeds
 | Category | Commands |
 | --- | --- |
 | Diagnostics | `/ping`, `/status`, `/permissions` |
-| Setup | `/setup`, `/invite`, `/botinfo` |
+| Setup | `/setup`, `/invite`, `/botinfo`, `/support` |
 | Server | `/serverinfo`, `/membercount`, `/channelcount`, `/servericon`, `/serverroles` |
 | Members | `/userinfo`, `/avatar` |
 | Fun | `/roll`, `/coinflip`, `/8ball`, `/choose`, `/rps`, `/ship`, `/roast`, `/fact` |
