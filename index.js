@@ -98,7 +98,6 @@ const client = new Client({
 const recentMessages = new Map();
 const spamCooldowns = new Map();
 const commandCooldowns = new Map();
-const startedAt = Date.now();
 const maintenance = setInterval(() => {
   const cutoff = Date.now() - 10 * 60_000;
   for (const [key, timestamps] of recentMessages) {
@@ -131,7 +130,7 @@ const commandHelp = new EmbedBuilder()
   .setDescription('Helpful tools for your server. Use a command below to get started.')
   .addFields(
     { name: '📌 General', value: '`/ping` health • `/status` hosting status • `/membercount` members • `/serverinfo` server details • `/servericon` server icon • `/userinfo` member details • `/avatar` profile picture' },
-    { name: '🔗 Tools', value: '`/invite` bot invite link • `/permissions` channel permission check • `/botinfo` bot details • `/channelinfo` channel details • `/serverroles` role overview' },
+    { name: '🔗 Tools', value: '`/invite` bot invite link • `/permissions` channel permission check • `/botinfo` bot details • `/serverroles` role overview' },
     { name: '🎮 Fun & Games', value: '`/roll` dice • `/coinflip` coin • `/8ball` answer • `/choose` random choice • `/rps` battle • `/ship` friendship score • `/roast` playful roast • `/fact` fun fact • `/poll` poll' },
     { name: '📣 Community', value: '`/announce` post a polished announcement' },
     { name: '🛡️ Moderation', value: '`/clear` remove messages • `/kick` remove a member • `/ban` ban a member' },
@@ -139,6 +138,7 @@ const commandHelp = new EmbedBuilder()
   )
   .setFooter({ text: 'Free to use • Keep the bot token private' });
 const totalMembers = () => client.guilds.cache.reduce((total, guild) => total + (guild.memberCount ?? 0), 0);
+const presenceTimer = null;
 const updatePresence = () => {
   if (!client.user) return;
   client.user.setPresence({ activities: [{ name: `${totalMembers().toLocaleString()} members • /help` }], status: 'online' });
@@ -175,7 +175,7 @@ client.on('guildMemberAdd', async (member) => {
 });
 
 client.on('guildMemberRemove', updatePresence);
-setInterval(updatePresence, 5 * 60_000);
+const presenceTimerHandle = setInterval(updatePresence, 5 * 60_000);
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot || !message.guild) return;
@@ -186,9 +186,9 @@ client.on('messageCreate', async (message) => {
   recent.push(now);
   recentMessages.set(spamKey, recent);
   if (recent.length < 6 || message.member?.permissions.has(PermissionFlagsBits.ManageMessages)) return;
-  const lastAction = spamCooldowns.get(message.author.id) ?? 0;
+  const lastAction = spamCooldowns.get(spamKey) ?? 0;
   if (now - lastAction < 60_000) return;
-  spamCooldowns.set(message.author.id, now);
+  spamCooldowns.set(spamKey, now);
   if (message.member.moderatable) {
     await message.member.timeout(60_000, 'Automatic spam protection').catch(() => {});
     await message.channel.send({ content: `${message.author}, please slow down. You have been timed out for 1 minute.`, allowedMentions: { users: [message.author.id] } }).catch(() => {});
@@ -206,7 +206,7 @@ client.on('interactionCreate', async (interaction) => {
     return;
   }
   commandCooldowns.set(cooldownKey, now + (['roll', 'coinflip', '8ball', 'choose', 'rps', 'ship', 'roast', 'fact'].includes(interaction.commandName) ? 1500 : 750));
-  const guildOnly = ['setup', 'serverinfo', 'userinfo', 'poll', 'announce', 'clear', 'kick', 'ban'];
+  const guildOnly = ['setup', 'membercount', 'channelcount', 'servericon', 'permissions', 'serverroles', 'serverinfo', 'userinfo', 'poll', 'announce', 'clear', 'kick', 'ban'];
   if (guildOnly.includes(interaction.commandName) && !interaction.guild) {
     await interaction.reply({ content: 'This command can only be used inside a server.', ephemeral: true });
     return;
@@ -397,8 +397,9 @@ client.on('rateLimit', (rateLimitData) => log('warn', 'Discord rate limit reache
 client.on('error', (error) => log('error', 'Discord client error:', error.message));
 process.on('unhandledRejection', (error) => log('error', 'Unhandled promise rejection:', error instanceof Error ? error.message : String(error)));
 process.on('uncaughtException', (error) => { log('error', 'Uncaught exception:', error.message); process.exitCode = 1; });
-process.on('SIGINT', () => { clearInterval(maintenance); client.destroy(); log('log', 'Bot stopped cleanly.'); process.exit(0); });
-process.on('SIGTERM', () => { clearInterval(maintenance); client.destroy(); log('log', 'Bot stopped cleanly.'); process.exit(0); });
+const shutdown = (signal) => { clearInterval(maintenance); clearInterval(presenceTimerHandle); client.destroy(); log('log', `Bot stopped cleanly (${signal}).`); process.exit(0); };
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
 client.login(process.env.DISCORD_TOKEN).catch((error) => {
   log('error', 'Could not log in. Check DISCORD_TOKEN and bot settings:', error.message);
   process.exit(1);
