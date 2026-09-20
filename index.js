@@ -11,11 +11,17 @@ import {
 
 const required = ['DISCORD_TOKEN', 'CLIENT_ID'];
 for (const name of required) {
-  if (!process.env[name]) {
+  if (!process.env[name]?.trim()) {
     console.error(`Missing required environment variable: ${name}`);
     process.exit(1);
   }
 }
+
+const log = (level, message, details = '') => {
+  const suffix = details ? ` ${details}` : '';
+  console[level](`[${new Date().toISOString()}] ${message}${suffix}`);
+};
+const cleanText = (value, fallback = 'No reason provided.') => String(value || fallback).trim().slice(0, 512);
 
 const commands = [
   new SlashCommandBuilder().setName('ping').setDescription('Check bot health, latency, and uptime.'),
@@ -70,9 +76,9 @@ const commandRoute = process.env.GUILD_ID
 
 try {
   await rest.put(commandRoute, { body: commands });
-  console.log(`Registered ${commands.length} slash commands${process.env.GUILD_ID ? ' for the configured guild' : ' globally'}.`);
+  log('log', `Registered ${commands.length} slash commands${process.env.GUILD_ID ? ' for the configured guild' : ' globally'}.`);
 } catch (error) {
-  console.error('Could not register slash commands:', error);
+  log('error', 'Could not register slash commands:', error.message);
   process.exit(1);
 }
 
@@ -88,6 +94,17 @@ const client = new Client({
 const recentMessages = new Map();
 const spamCooldowns = new Map();
 const commandCooldowns = new Map();
+const startedAt = Date.now();
+const maintenance = setInterval(() => {
+  const cutoff = Date.now() - 10 * 60_000;
+  for (const [key, timestamps] of recentMessages) {
+    const fresh = timestamps.filter((timestamp) => timestamp > cutoff);
+    if (fresh.length) recentMessages.set(key, fresh);
+    else recentMessages.delete(key);
+  }
+  for (const [key, timestamp] of commandCooldowns) if (timestamp < Date.now()) commandCooldowns.delete(key);
+  for (const [key, timestamp] of spamCooldowns) if (timestamp < cutoff) spamCooldowns.delete(key);
+}, 60_000);
 const commandList = '/ping, /help, /setup, /status, /membercount, /servericon, /invite, /permissions, /serverinfo, /userinfo, /avatar, /roll, /coinflip, /8ball, /choose, /rps, /ship, /roast, /fact, /poll, /announce, /clear, /kick, /ban';
 const eightBallAnswers = ['Absolutely yes.', 'Probably yes.', 'It is looking good.', 'Ask again later.', 'I am not sure yet.', 'Probably not.', 'The signs say no.', 'Absolutely not.'];
 const facts = ['The first video game easter egg is commonly credited to Adventure for the Atari 2600.', 'Discord was originally built for people who wanted an easier way to talk while gaming.', 'A good community grows faster when new players get a friendly welcome.', 'The best moderation tool is clear rules applied consistently.', 'Taking short breaks can make long gaming sessions more fun.'];
@@ -133,7 +150,7 @@ const setupEmbed = () => new EmbedBuilder()
 
 client.once('ready', (readyClient) => {
   readyClient.user.setPresence({ activities: [{ name: '/help • free community bot' }], status: 'online' });
-  console.log(`Logged in as ${readyClient.user.tag} in ${readyClient.guilds.cache.size} server(s).`);
+  log('log', `Logged in as ${readyClient.user.tag} in ${readyClient.guilds.cache.size} server(s).`);
 });
 
 client.on('guildMemberAdd', async (member) => {
@@ -141,24 +158,25 @@ client.on('guildMemberAdd', async (member) => {
   const channel = member.guild.channels.cache.get(process.env.WELCOME_CHANNEL_ID);
   if (channel?.isTextBased()) {
     const welcome = new EmbedBuilder().setColor(0x57f287).setTitle(`Welcome to ${member.guild.name}!`).setDescription(`Hey ${member}, welcome to the community! Check the rules and have fun.`).setThumbnail(member.user.displayAvatarURL({ size: 256 })).setFooter({ text: 'Run /help to see what I can do.' });
-    await channel.send({ embeds: [welcome], allowedMentions: { users: [member.id] } }).catch(console.error);
+    await channel.send({ embeds: [welcome], allowedMentions: { users: [member.id] } }).catch((error) => log('error', 'Welcome message failed:', error.message));
   }
 });
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot || !message.guild) return;
   const now = Date.now();
-  const previous = recentMessages.get(message.author.id) ?? [];
+  const spamKey = `${message.guild.id}:${message.author.id}`;
+  const previous = recentMessages.get(spamKey) ?? [];
   const recent = previous.filter((timestamp) => now - timestamp < 10000);
   recent.push(now);
-  recentMessages.set(message.author.id, recent);
+  recentMessages.set(spamKey, recent);
   if (recent.length < 6 || message.member?.permissions.has(PermissionFlagsBits.ManageMessages)) return;
   const lastAction = spamCooldowns.get(message.author.id) ?? 0;
   if (now - lastAction < 60_000) return;
   spamCooldowns.set(message.author.id, now);
   if (message.member.moderatable) {
     await message.member.timeout(60_000, 'Automatic spam protection').catch(() => {});
-    await message.channel.send(`${message.author}, please slow down. You have been timed out for 1 minute.`).catch(() => {});
+    await message.channel.send({ content: `${message.author}, please slow down. You have been timed out for 1 minute.`, allowedMentions: { users: [message.author.id] } }).catch(() => {});
   }
 });
 
@@ -303,8 +321,8 @@ client.on('interactionCreate', async (interaction) => {
     const poll = await interaction.reply({ embeds: [pollEmbed], fetchReply: true, allowedMentions: { parse: [] } });
     for (const emoji of emojis.slice(0, choices.length)) await poll.react(emoji);
   } else if (interaction.commandName === 'announce') {
-    const message = interaction.options.getString('message', true).trim();
-    const title = interaction.options.getString('title')?.trim() || '📢 Announcement';
+    const message = cleanText(interaction.options.getString('message'), 'No announcement text provided.');
+    const title = cleanText(interaction.options.getString('title'), '📢 Announcement').slice(0, 100);
     const announcement = new EmbedBuilder().setColor(0xed4245).setTitle(title).setDescription(message).setAuthor({ name: interaction.user.tag, iconURL: interaction.user.displayAvatarURL({ size: 128 }) }).setTimestamp().setFooter({ text: `${interaction.guild.name} • Official announcement` });
     await interaction.reply({ embeds: [announcement], allowedMentions: { parse: [] } });
   } else if (interaction.commandName === 'clear') {
@@ -315,7 +333,7 @@ client.on('interactionCreate', async (interaction) => {
   } else if (interaction.commandName === 'kick' || interaction.commandName === 'ban') {
     const user = interaction.options.getUser('user', true);
     const member = await interaction.guild.members.fetch(user.id).catch(() => null);
-    const reason = interaction.options.getString('reason') ?? `Action by ${interaction.user.tag}`;
+    const reason = cleanText(interaction.options.getString('reason'), `Action by ${interaction.user.tag}`);
     if (!member) return interaction.reply({ content: 'That member is not in this server.', ephemeral: true });
     if (user.id === interaction.user.id || user.id === interaction.guild.ownerId || user.id === interaction.guild.members.me?.id) return interaction.reply({ content: 'I cannot moderate that account.', ephemeral: true });
     if (!member.moderatable && interaction.commandName === 'kick') return interaction.reply({ content: 'I cannot kick that member. Check role hierarchy and permissions.', ephemeral: true });
@@ -326,16 +344,19 @@ client.on('interactionCreate', async (interaction) => {
     }
   } catch (error) {
     const errorCode = `${interaction.commandName.toUpperCase().slice(0, 8)}-${Date.now().toString(36).toUpperCase().slice(-6)}`;
-    console.error(`[${errorCode}] Command ${interaction.commandName} failed:`, error);
+    log('error', `[${errorCode}] Command ${interaction.commandName} failed:`, error.message);
     const response = { embeds: [errorEmbed(errorCode)], ephemeral: true, allowedMentions: { parse: [] } };
     if (interaction.replied || interaction.deferred) await interaction.followUp(response).catch(() => {});
     else await interaction.reply(response).catch(() => {});
   }
 });
 
-client.on('error', (error) => console.error('Discord client error:', error));
-process.on('unhandledRejection', (error) => console.error('Unhandled promise rejection:', error));
+client.on('error', (error) => log('error', 'Discord client error:', error.message));
+process.on('unhandledRejection', (error) => log('error', 'Unhandled promise rejection:', error instanceof Error ? error.message : String(error)));
+process.on('uncaughtException', (error) => { log('error', 'Uncaught exception:', error.message); process.exitCode = 1; });
+process.on('SIGINT', () => { clearInterval(maintenance); client.destroy(); log('log', 'Bot stopped cleanly.'); process.exit(0); });
+process.on('SIGTERM', () => { clearInterval(maintenance); client.destroy(); log('log', 'Bot stopped cleanly.'); process.exit(0); });
 client.login(process.env.DISCORD_TOKEN).catch((error) => {
-  console.error('Could not log in. Check DISCORD_TOKEN and bot settings:', error.message);
+  log('error', 'Could not log in. Check DISCORD_TOKEN and bot settings:', error.message);
   process.exit(1);
 });
