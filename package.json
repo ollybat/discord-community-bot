@@ -1,11 +1,15 @@
 {
-  "name": "discord-bot-ping-serverinfo",
-  "version": "1.0.0",
-  "private": true,
+  "name": "discord-community-bot",
+  "version": "1.1.0",
+  "description": "A free, polished Discord community bot with games, server tools, moderation, diagnostics, and friendly errors.",
+  "private": false,
+  "license": "MIT",
   "type": "module",
+  "engines": { "node": ">=20" },
   "scripts": {
     "start": "node index.js",
-    "register": "node index.js"
+    "register": "node index.js",
+    "check": "node --check index.js"
   },
   "dependencies": {
     "discord.js": "^14.22.1",
