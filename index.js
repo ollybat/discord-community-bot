@@ -22,8 +22,9 @@ const snowflake = /^\d+$/;
 for (const name of ['CLIENT_ID', 'GUILD_ID']) {
   if (process.env[name]?.trim() && !snowflake.test(process.env[name].trim())) {
     const raw = process.env[name] ?? '';
-    const safeShape = raw.trim().replace(/\d/g, '0').slice(0, 32);
-    console.error(`${name} must contain only the numeric Discord ID. Received length=${raw.trim().length}, shape=${safeShape || '(empty)'}. Copy the Application ID from Developer Portal; do not include quotes or the bot token.`);
+    const value = raw.trim();
+    const characterClasses = [...new Set([...value].map((character) => /\d/.test(character) ? 'digit' : /[A-Z]/.test(character) ? 'uppercase' : /[a-z]/.test(character) ? 'lowercase' : 'symbol'))].join(', ');
+    console.error(`${name} must contain only the numeric Discord ID. Received length=${value.length}, character classes=${characterClasses || 'empty'}. Copy the Application ID from Developer Portal; never log or share this value.`);
     process.exit(1);
   }
 }
