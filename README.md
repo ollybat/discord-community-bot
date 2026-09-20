@@ -37,11 +37,19 @@ Create an application in the [Discord Developer Portal](https://discord.com/deve
 
 ### 2. Configure environment variables
 
+Use the Discord Developer Portal values exactly as follows:
+
+- `DISCORD_TOKEN` — Bot page → **Reset Token / Copy Token**
+- `CLIENT_ID` — General Information → **Application ID**; it should contain only numbers
+- `GUILD_ID` — optional numeric ID of your test server
+
+If logs say `application_id ... is not snowflake`, `CLIENT_ID` contains the token or another non-numeric value. Replace it with the numeric Application ID and redeploy.
+
 ```bash
 cp .env.example .env
 ```
 
-Fill in `DISCORD_TOKEN` and `CLIENT_ID`. Set `GUILD_ID` for quick command updates during development. Set `WELCOME_CHANNEL_ID` for welcome messages.
+Fill in `DISCORD_TOKEN` and `CLIENT_ID`. **`CLIENT_ID` must be the numeric Application ID from the Discord Developer Portal, not the bot token.** Set `GUILD_ID` for quick command updates during development. Set `WELCOME_CHANNEL_ID` for welcome messages.
 
 ### 3. Enable intents
 
