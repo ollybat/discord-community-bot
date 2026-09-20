@@ -6,8 +6,9 @@ A free-to-use Discord bot starter for communities and gaming servers. Anyone can
 
 A small Discord bot built with `discord.js` featuring:
 
-- `/ping` — returns the bot's API latency.
-- `/help` — lists all commands.
+- `/ping` — shows health, latency, uptime, server count, and Node.js version.
+- `/help` — lists all commands privately.
+- `/roll`, `/coinflip`, `/8ball`, and `/choose` — fun commands for players.
 - `/setup` — gives server administrators a step-by-step setup guide.
 - `/serverinfo` — displays server membership, channels, roles, owner, creation date, and ID.
 - `/userinfo` and `/avatar` — inspect users.
