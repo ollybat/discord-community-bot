@@ -44,6 +44,7 @@ const commands = [
   new SlashCommandBuilder().setName('invite').setDescription('Get a safe invite link for this bot.'),
   new SlashCommandBuilder().setName('permissions').setDescription('Check the bot permissions in this channel.'),
   new SlashCommandBuilder().setName('botinfo').setDescription('Show information about this bot and its features.'),
+  new SlashCommandBuilder().setName('support').setDescription('Show help for getting the bot running and reporting errors.'),
   new SlashCommandBuilder().setName('serverroles').setDescription('List the most important roles in this server.'),
   new SlashCommandBuilder().setName('roll').setDescription('Roll a dice.').addIntegerOption((option) => option.setName('sides').setDescription('Number of sides, from 2 to 1000.').setMinValue(2).setMaxValue(1000)),
   new SlashCommandBuilder().setName('coinflip').setDescription('Flip a coin.'),
@@ -143,7 +144,7 @@ const commandHelp = new EmbedBuilder()
   .setDescription('Helpful tools for your server. Use a command below to get started.')
   .addFields(
     { name: '📌 General', value: '`/ping` health • `/status` hosting status • `/membercount` members • `/serverinfo` server details • `/servericon` server icon • `/userinfo` member details • `/avatar` profile picture' },
-    { name: '🔗 Tools', value: '`/invite` bot invite link • `/permissions` channel permission check • `/botinfo` bot details • `/serverroles` role overview' },
+    { name: '🔗 Tools', value: '`/invite` bot invite link • `/permissions` channel permission check • `/botinfo` bot details • `/serverroles` role overview • `/support` troubleshooting' },
     { name: '🎮 Fun & Games', value: '`/roll` dice • `/coinflip` coin • `/8ball` answer • `/choose` random choice • `/rps` battle • `/ship` friendship score • `/roast` playful roast • `/fact` fun fact • `/poll` poll' },
     { name: '📣 Community', value: '`/announce` post a polished announcement' },
     { name: '🛡️ Moderation', value: '`/clear` remove messages • `/kick` remove a member • `/ban` ban a member' },
@@ -230,8 +231,8 @@ client.on('interactionCreate', async (interaction) => {
     const humans = interaction.guild?.members.cache.filter((member) => !member.user.bot).size;
     const bots = interaction.guild?.members.cache.filter((member) => member.user.bot).size;
     await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x57f287).setTitle(`👥 ${interaction.guild.name} member count`).setDescription(`This server has **${interaction.guild.memberCount}** members.`).addFields(
-      { name: 'People', value: `${humans ?? 'Unavailable'}`, inline: true },
-      { name: 'Bots', value: `${bots ?? 'Unavailable'}`, inline: true },
+      { name: 'People (cached)', value: `${humans ?? 'Unavailable'}`, inline: true },
+      { name: 'Bots (cached)', value: `${bots ?? 'Unavailable'}`, inline: true },
       { name: 'Server ID', value: interaction.guild.id, inline: true },
     ).setFooter({ text: 'Counts use the members available to the bot' })] });
   } else if (interaction.commandName === 'channelcount') {
@@ -260,6 +261,14 @@ client.on('interactionCreate', async (interaction) => {
     const needed = ['ViewChannel', 'SendMessages', 'EmbedLinks', 'AddReactions', 'ManageMessages', 'KickMembers', 'BanMembers', 'ModerateMembers'];
     const lines = needed.map((name) => `${permissions?.has(PermissionFlagsBits[name]) ? '✅' : '❌'} ${name}`).join('\n');
     await interaction.reply({ embeds: [new EmbedBuilder().setColor(permissions?.has(PermissionFlagsBits.SendMessages) ? 0x57f287 : 0xed4245).setTitle('🔐 Channel permissions').setDescription(lines).addFields({ name: 'How to fix', value: 'Ask an administrator to update the bot role or this channel override. The bot role must also be above members it moderates.' })], ephemeral: true });
+  } else if (interaction.commandName === 'support') {
+    await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x3498db).setTitle('🛠️ Bot support').setDescription('Quick fixes for the most common setup problems.').addFields(
+      { name: 'Bot is offline', value: 'Check Railway deployment logs, confirm `DISCORD_TOKEN` is set as a secret, and redeploy the service.' },
+      { name: 'Commands are missing', value: 'Confirm `CLIENT_ID` is the numeric Application ID. Set `GUILD_ID` for fast test-server updates, then restart the bot.' },
+      { name: 'Permission errors', value: 'Run `/permissions` in the channel. Check the bot role position for `/kick`, `/ban`, and `/clear`.' },
+      { name: 'Error code', value: 'Copy only the error code from the private error card. Never share tokens or environment-variable values.' },
+      { name: 'Source code', value: '[GitHub repository](https://github.com/ollyjaxk-byte/discord-community-bot)' },
+    ).setFooter({ text: 'Free Community Bot • Keep credentials private' })], ephemeral: true });
   } else if (interaction.commandName === 'botinfo') {
     const uptime = Math.floor(process.uptime());
     await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle('🤖 Free Community Bot').setDescription('A friendly, privacy-conscious bot for gaming and community servers.').setThumbnail(client.user.displayAvatarURL({ size: 256 })).addFields(
