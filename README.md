@@ -1,57 +1,44 @@
 # Free Discord Community Bot
 
-A free-to-use Discord bot starter for communities and gaming servers. Anyone can invite their own instance and use the commands without a paid subscription. Commands use private help responses, polished embeds, validation, and safer mention handling.
+A free-to-use Discord bot starter for communities and gaming servers. It includes polished embeds, fun mini-games, moderation, validation, cooldowns, welcome messages, polls, spam protection, and safer mention handling.
 
-> This repository contains the source code. It does not include a shared public bot token. Each owner should create and run their own bot instance.
+> This repository contains source code only. It does not include a shared public bot token. Each server owner should create and run their own bot instance.
 
-A small Discord bot built with `discord.js` featuring:
+## Commands
 
-- `/ping` — shows health, latency, uptime, server count, and Node.js version.
-- `/help` — lists all commands privately.
-- `/roll`, `/coinflip`, `/8ball`, and `/choose` — fun commands for players.
-- `/setup` — gives server administrators a step-by-step setup guide.
-- `/serverinfo` — displays server membership, channels, roles, owner, creation date, and ID.
-- `/userinfo` and `/avatar` — inspect users.
-- `/poll` — create a polished poll with 2–4 choices and numbered reactions.
-- `/announce` — post a titled embed announcement (Manage Messages required).
-- `/clear` — delete 1–100 recent messages (Manage Messages required).
-- `/kick` and `/ban` — moderation actions with reasons.
+- `/ping` — health, latency, uptime, server count, and Node.js version.
+- `/help` — private organized command guide.
+- `/setup` — administrator setup guide.
+- `/serverinfo`, `/userinfo`, `/avatar` — server and member information.
+- `/roll`, `/coinflip`, `/8ball`, `/choose` — player fun commands.
+- `/rps` — rock, paper, scissors against the bot.
+- `/ship` — playful friendship score.
+- `/roast` — harmless roast.
+- `/fact` — community or gaming fact.
+- `/poll` — multi-choice reaction poll.
+- `/announce` — polished staff announcement embed.
+- `/clear`, `/kick`, `/ban` — moderation commands.
 - Welcome messages and basic spam protection.
-
-## Requirements
-
-- Node.js 20 or newer
-- A Discord application and bot token
 
 ## Setup
 
-1. Create an application in the [Discord Developer Portal](https://discord.com/developers/applications).
-2. Add a **Bot** user and copy its token. Keep it secret; never commit it.
-3. Copy `.env.example` to `.env` and fill in `DISCORD_TOKEN` and `CLIENT_ID`.
-4. Run:
+1. Create an application at https://discord.com/developers/applications and add a Bot user.
+2. Copy `.env.example` to `.env` and fill in `DISCORD_TOKEN` and `CLIENT_ID`.
+3. Enable Server Members Intent for welcomes and Message Content Intent for spam protection.
+4. Invite with the `bot` and `applications.commands` scopes. Grant only needed permissions; do not grant Administrator.
+5. Install and run:
 
    ```bash
    npm install
    npm start
    ```
 
-The bot registers commands when it starts. Set `GUILD_ID` while developing for near-instant registration. Without it, commands are registered globally and may take up to an hour to appear. Run `/setup` in Discord for an administrator-friendly guide.
+Set `GUILD_ID` for fast command updates while developing. Set `WELCOME_CHANNEL_ID` for welcome messages. Run `/setup` in Discord for an in-server guide.
 
-## Invite the bot
+## Safety
 
-In the Developer Portal, open **OAuth2 → URL Generator**, select the `bot` and `applications.commands` scopes, and grant only the permissions you need: `View Channels`, `Send Messages`, `Embed Links`, `Add Reactions`, `Manage Messages`, `Kick Members`, `Ban Members`, `Moderate Members`, and `Manage Guild` for `/setup`. Do not grant `Administrator` unless absolutely necessary. Then use the generated URL to invite it.
+Never commit `.env` or your bot token. If a token is exposed, reset it immediately in the Developer Portal. Keep playful commands friendly and use moderation permissions responsibly.
 
-For welcome messages, enable the **Server Members Intent** in the Developer Portal and set `WELCOME_CHANNEL_ID`. For spam protection, enable the **Message Content Intent** too. These are privileged intents; enable them in the Developer Portal before starting the bot. The bot also needs to have a role above members it should kick or ban.
+## License
 
-## GitHub
-
-```bash
-git init
-git add .
-git commit -m "Add Discord ping and server info bot"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
-git push -u origin main
-```
-
-Do not upload `.env` or your bot token.
+MIT — free to use and modify.
