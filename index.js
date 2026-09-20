@@ -18,7 +18,11 @@ for (const name of required) {
 }
 
 const commands = [
-  new SlashCommandBuilder().setName('ping').setDescription('Check the bot latency.'),
+  new SlashCommandBuilder().setName('ping').setDescription('Check bot health, latency, and uptime.'),
+  new SlashCommandBuilder().setName('roll').setDescription('Roll a dice.').addIntegerOption((option) => option.setName('sides').setDescription('Number of sides, from 2 to 1000.').setMinValue(2).setMaxValue(1000)),
+  new SlashCommandBuilder().setName('coinflip').setDescription('Flip a coin.'),
+  new SlashCommandBuilder().setName('8ball').setDescription('Ask the magic 8-ball a question.').addStringOption((option) => option.setName('question').setDescription('Your question.').setMaxLength(250).setRequired(true)),
+  new SlashCommandBuilder().setName('choose').setDescription('Choose randomly between options.').addStringOption((option) => option.setName('options').setDescription('Separate choices with commas.').setMaxLength(1000).setRequired(true)),
   new SlashCommandBuilder().setName('help').setDescription('List the bot commands.'),
   new SlashCommandBuilder().setName('setup').setDescription('Show the steps and permissions needed to set up this bot.')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
@@ -74,14 +78,17 @@ const client = new Client({
 
 const recentMessages = new Map();
 const spamCooldowns = new Map();
-const commandList = '/ping, /help, /setup, /serverinfo, /userinfo, /avatar, /poll, /announce, /clear, /kick, /ban';
+const commandCooldowns = new Map();
+const commandList = '/ping, /help, /setup, /serverinfo, /userinfo, /avatar, /roll, /coinflip, /8ball, /choose, /poll, /announce, /clear, /kick, /ban';
+const eightBallAnswers = ['Absolutely yes.', 'Probably yes.', 'It is looking good.', 'Ask again later.', 'I am not sure yet.', 'Probably not.', 'The signs say no.', 'Absolutely not.']; '/ping, /help, /setup, /serverinfo, /userinfo, /avatar, /poll, /announce, /clear, /kick, /ban';
 const commandHelp = new EmbedBuilder()
   .setColor(0x5865f2)
   .setTitle('Free Community Bot')
   .setDescription('Helpful tools for your server. Use a command below to get started.')
   .addFields(
-    { name: '📌 General', value: '`/ping` latency • `/serverinfo` server details • `/userinfo` member details • `/avatar` profile picture' },
-    { name: '🎮 Community', value: '`/poll` create a multi-choice poll • `/announce` post an announcement' },
+    { name: '📌 General', value: '`/ping` health • `/serverinfo` server details • `/userinfo` member details • `/avatar` profile picture' },
+    { name: '🎮 Fun & Games', value: '`/roll` dice • `/coinflip` coin • `/8ball` answer • `/choose` random choice • `/poll` multi-choice poll' },
+    { name: '📣 Community', value: '`/announce` post a polished announcement' },
     { name: '🛡️ Moderation', value: '`/clear` remove messages • `/kick` remove a member • `/ban` ban a member' },
     { name: '⚙️ Setup', value: '`/setup` shows the complete administrator setup guide' },
   )
@@ -133,6 +140,15 @@ client.on('messageCreate', async (message) => {
 
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
+  const cooldownKey = `${interaction.user.id}:${interaction.commandName}`;
+  const now = Date.now();
+  const cooldownUntil = commandCooldowns.get(cooldownKey) ?? 0;
+  if (cooldownUntil > now) {
+    const seconds = Math.ceil((cooldownUntil - now) / 1000);
+    await interaction.reply({ content: `Please wait ${seconds}s before using \`/${interaction.commandName}\` again.`, ephemeral: true });
+    return;
+  }
+  commandCooldowns.set(cooldownKey, now + (['roll', 'coinflip', '8ball', 'choose'].includes(interaction.commandName) ? 1500 : 750));
   const guildOnly = ['setup', 'serverinfo', 'userinfo', 'poll', 'announce', 'clear', 'kick', 'ban'];
   if (guildOnly.includes(interaction.commandName) && !interaction.guild) {
     await interaction.reply({ content: 'This command can only be used inside a server.', ephemeral: true });
@@ -140,7 +156,34 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   if (interaction.commandName === 'ping') {
-    await interaction.reply(`Pong! API latency is ${client.ws.ping}ms.`);
+    const uptime = Math.floor(process.uptime());
+    const hours = Math.floor(uptime / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60);
+    const seconds = uptime % 60;
+    const status = client.ws.ping < 150 ? 'Excellent' : client.ws.ping < 300 ? 'Good' : 'Slow';
+    await interaction.reply({ embeds: [new EmbedBuilder().setColor(client.ws.ping < 300 ? 0x57f287 : 0xfee75c).setTitle('🏓 Bot health').addFields(
+      { name: 'API latency', value: `${client.ws.ping}ms`, inline: true },
+      { name: 'Status', value: status, inline: true },
+      { name: 'Uptime', value: `${hours}h ${minutes}m ${seconds}s`, inline: true },
+      { name: 'Servers', value: `${client.guilds.cache.size}`, inline: true },
+      { name: 'Node.js', value: process.version, inline: true },
+    ).setFooter({ text: 'Healthy and ready to help' })] });
+  } else if (interaction.commandName === 'roll') {
+    const sides = interaction.options.getInteger('sides') ?? 6;
+    const result = Math.floor(Math.random() * sides) + 1;
+    await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle('🎲 Dice roll').setDescription(`You rolled **${result}** on a **d${sides}**.`).setFooter({ text: `Rolled by ${interaction.user.tag}` })] });
+  } else if (interaction.commandName === 'coinflip') {
+    const result = Math.random() < 0.5 ? 'Heads' : 'Tails';
+    await interaction.reply({ embeds: [new EmbedBuilder().setColor(0xfee75c).setTitle('🪙 Coin flip').setDescription(`The coin landed on **${result}**!`).setFooter({ text: `Flipped by ${interaction.user.tag}` })] });
+  } else if (interaction.commandName === '8ball') {
+    const question = interaction.options.getString('question', true).trim();
+    await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x9b59b6).setTitle('🎱 Magic 8-ball').addFields({ name: 'Question', value: question }, { name: 'Answer', value: `**${eightBallAnswers[Math.floor(Math.random() * eightBallAnswers.length)]}**` }).setFooter({ text: `Asked by ${interaction.user.tag}` })] });
+  } else if (interaction.commandName === 'choose') {
+    const options = interaction.options.getString('options', true).split(',').map((option) => option.trim()).filter(Boolean);
+    if (options.length < 2) return interaction.reply({ content: 'Give me at least two choices separated by commas. Example: `pizza, tacos, burgers`.', ephemeral: true });
+    if (new Set(options.map((option) => option.toLowerCase())).size !== options.length) return interaction.reply({ content: 'Please use different choices.', ephemeral: true });
+    const choice = options[Math.floor(Math.random() * options.length)];
+    await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x57f287).setTitle('✨ Random choice').setDescription(`I choose **${choice}**!`).addFields({ name: 'Choices', value: options.map((option, index) => `${index + 1}. ${option}`).join('\n').slice(0, 1024) }).setFooter({ text: `Chosen for ${interaction.user.tag}` })] });
   } else if (interaction.commandName === 'help') {
     await interaction.reply({ embeds: [commandHelp], ephemeral: true });
   } else if (interaction.commandName === 'setup') {
