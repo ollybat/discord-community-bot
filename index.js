@@ -23,6 +23,10 @@ const commands = [
   new SlashCommandBuilder().setName('coinflip').setDescription('Flip a coin.'),
   new SlashCommandBuilder().setName('8ball').setDescription('Ask the magic 8-ball a question.').addStringOption((option) => option.setName('question').setDescription('Your question.').setMaxLength(250).setRequired(true)),
   new SlashCommandBuilder().setName('choose').setDescription('Choose randomly between options.').addStringOption((option) => option.setName('options').setDescription('Separate choices with commas.').setMaxLength(1000).setRequired(true)),
+  new SlashCommandBuilder().setName('rps').setDescription('Play rock, paper, scissors against the bot.').addStringOption((option) => option.setName('choice').setDescription('Your move.').setRequired(true).addChoices({ name: 'Rock 🪨', value: 'rock' }, { name: 'Paper 📄', value: 'paper' }, { name: 'Scissors ✂️', value: 'scissors' })),
+  new SlashCommandBuilder().setName('ship').setDescription('Calculate the friendship score for two users.').addUserOption((option) => option.setName('user1').setDescription('First user.').setRequired(true)).addUserOption((option) => option.setName('user2').setDescription('Second user.').setRequired(true)),
+  new SlashCommandBuilder().setName('roast').setDescription('Give a playful, harmless roast.').addUserOption((option) => option.setName('user').setDescription('User to roast.')),
+  new SlashCommandBuilder().setName('fact').setDescription('Get a random gaming and community fact.'),
   new SlashCommandBuilder().setName('help').setDescription('List the bot commands.'),
   new SlashCommandBuilder().setName('setup').setDescription('Show the steps and permissions needed to set up this bot.')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
@@ -79,15 +83,18 @@ const client = new Client({
 const recentMessages = new Map();
 const spamCooldowns = new Map();
 const commandCooldowns = new Map();
-const commandList = '/ping, /help, /setup, /serverinfo, /userinfo, /avatar, /roll, /coinflip, /8ball, /choose, /poll, /announce, /clear, /kick, /ban';
-const eightBallAnswers = ['Absolutely yes.', 'Probably yes.', 'It is looking good.', 'Ask again later.', 'I am not sure yet.', 'Probably not.', 'The signs say no.', 'Absolutely not.']; '/ping, /help, /setup, /serverinfo, /userinfo, /avatar, /poll, /announce, /clear, /kick, /ban';
+const commandList = '/ping, /help, /setup, /serverinfo, /userinfo, /avatar, /roll, /coinflip, /8ball, /choose, /rps, /ship, /roast, /fact, /poll, /announce, /clear, /kick, /ban';
+const eightBallAnswers = ['Absolutely yes.', 'Probably yes.', 'It is looking good.', 'Ask again later.', 'I am not sure yet.', 'Probably not.', 'The signs say no.', 'Absolutely not.'];
+const facts = ['The first video game easter egg is commonly credited to Adventure for the Atari 2600.', 'Discord was originally built for people who wanted an easier way to talk while gaming.', 'A good community grows faster when new players get a friendly welcome.', 'The best moderation tool is clear rules applied consistently.', 'Taking short breaks can make long gaming sessions more fun.'];
+const roasts = ['has the confidence of a final boss and the strategy of a tutorial bot.', 'could lose a game of rock paper scissors to a loading screen.', 'is proof that having a plan and following it are two different skills.', 'brings main-character energy to every side quest.', 'is not lagging; the brain is just buffering.'];
+const moves = { rock: '🪨', paper: '📄', scissors: '✂️' }; '/ping, /help, /setup, /serverinfo, /userinfo, /avatar, /poll, /announce, /clear, /kick, /ban';
 const commandHelp = new EmbedBuilder()
   .setColor(0x5865f2)
   .setTitle('Free Community Bot')
   .setDescription('Helpful tools for your server. Use a command below to get started.')
   .addFields(
     { name: '📌 General', value: '`/ping` health • `/serverinfo` server details • `/userinfo` member details • `/avatar` profile picture' },
-    { name: '🎮 Fun & Games', value: '`/roll` dice • `/coinflip` coin • `/8ball` answer • `/choose` random choice • `/poll` multi-choice poll' },
+    { name: '🎮 Fun & Games', value: '`/roll` dice • `/coinflip` coin • `/8ball` answer • `/choose` random choice • `/rps` battle • `/ship` friendship score • `/roast` playful roast • `/fact` fun fact • `/poll` poll' },
     { name: '📣 Community', value: '`/announce` post a polished announcement' },
     { name: '🛡️ Moderation', value: '`/clear` remove messages • `/kick` remove a member • `/ban` ban a member' },
     { name: '⚙️ Setup', value: '`/setup` shows the complete administrator setup guide' },
@@ -148,7 +155,7 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.reply({ content: `Please wait ${seconds}s before using \`/${interaction.commandName}\` again.`, ephemeral: true });
     return;
   }
-  commandCooldowns.set(cooldownKey, now + (['roll', 'coinflip', '8ball', 'choose'].includes(interaction.commandName) ? 1500 : 750));
+  commandCooldowns.set(cooldownKey, now + (['roll', 'coinflip', '8ball', 'choose', 'rps', 'ship', 'roast', 'fact'].includes(interaction.commandName) ? 1500 : 750));
   const guildOnly = ['setup', 'serverinfo', 'userinfo', 'poll', 'announce', 'clear', 'kick', 'ban'];
   if (guildOnly.includes(interaction.commandName) && !interaction.guild) {
     await interaction.reply({ content: 'This command can only be used inside a server.', ephemeral: true });
@@ -184,6 +191,25 @@ client.on('interactionCreate', async (interaction) => {
     if (new Set(options.map((option) => option.toLowerCase())).size !== options.length) return interaction.reply({ content: 'Please use different choices.', ephemeral: true });
     const choice = options[Math.floor(Math.random() * options.length)];
     await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x57f287).setTitle('✨ Random choice').setDescription(`I choose **${choice}**!`).addFields({ name: 'Choices', value: options.map((option, index) => `${index + 1}. ${option}`).join('\n').slice(0, 1024) }).setFooter({ text: `Chosen for ${interaction.user.tag}` })] });
+  } else if (interaction.commandName === 'rps') {
+    const player = interaction.options.getString('choice', true);
+    const bot = ['rock', 'paper', 'scissors'][Math.floor(Math.random() * 3)];
+    const winner = player === bot ? 'It is a draw!' : ((player === 'rock' && bot === 'scissors') || (player === 'paper' && bot === 'rock') || (player === 'scissors' && bot === 'paper') ? 'You win! 🎉' : 'I win! 🤖');
+    await interaction.reply({ embeds: [new EmbedBuilder().setColor(winner.startsWith('You') ? 0x57f287 : winner.startsWith('I') ? 0xed4245 : 0xfee75c).setTitle('⚔️ Rock, Paper, Scissors').setDescription(`You chose **${moves[player]} ${player}**\nI chose **${moves[bot]} ${bot}**\n\n## ${winner}`).setFooter({ text: `Battle played by ${interaction.user.tag}` })] });
+  } else if (interaction.commandName === 'ship') {
+    const user1 = interaction.options.getUser('user1', true);
+    const user2 = interaction.options.getUser('user2', true);
+    const seed = [...`${user1.id}${user2.id}`].reduce((total, char) => total + char.charCodeAt(0), 0);
+    const score = seed % 101;
+    const label = score >= 80 ? 'Legendary duo 💖' : score >= 60 ? 'Great team 💫' : score >= 40 ? 'Could work 🤝' : 'Chaotic pairing ⚡';
+    await interaction.reply({ embeds: [new EmbedBuilder().setColor(0xff73fa).setTitle('💞 Friendship scanner').setDescription(`**${user1.username}** + **${user2.username}**\n\n# ${score}%\n${label}`).setFooter({ text: 'For fun only • No friendship guarantees' })] });
+  } else if (interaction.commandName === 'roast') {
+    const user = interaction.options.getUser('user') ?? interaction.user;
+    if (user.id === client.user.id) return interaction.reply('I am already self-aware enough, thanks. 🤖');
+    const roast = roasts[Math.floor(Math.random() * roasts.length)];
+    await interaction.reply({ embeds: [new EmbedBuilder().setColor(0xff9f43).setTitle('🔥 Playful roast').setDescription(`${user}, you ${roast}`).setFooter({ text: 'Just jokes • Keep it friendly' })], allowedMentions: { users: [user.id] } });
+  } else if (interaction.commandName === 'fact') {
+    await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x3498db).setTitle('💡 Community fact').setDescription(facts[Math.floor(Math.random() * facts.length)]).setFooter({ text: 'Learn, play, and be kind' })] });
   } else if (interaction.commandName === 'help') {
     await interaction.reply({ embeds: [commandHelp], ephemeral: true });
   } else if (interaction.commandName === 'setup') {
