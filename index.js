@@ -20,6 +20,10 @@ for (const name of required) {
 const commands = [
   new SlashCommandBuilder().setName('ping').setDescription('Check bot health, latency, and uptime.'),
   new SlashCommandBuilder().setName('status').setDescription('Check hosting, Discord connection, and bot status.'),
+  new SlashCommandBuilder().setName('membercount').setDescription('Show a clean member count for this server.'),
+  new SlashCommandBuilder().setName('servericon').setDescription('Show this server icon in full size.'),
+  new SlashCommandBuilder().setName('invite').setDescription('Get a safe invite link for this bot.'),
+  new SlashCommandBuilder().setName('permissions').setDescription('Check the bot permissions in this channel.'),
   new SlashCommandBuilder().setName('roll').setDescription('Roll a dice.').addIntegerOption((option) => option.setName('sides').setDescription('Number of sides, from 2 to 1000.').setMinValue(2).setMaxValue(1000)),
   new SlashCommandBuilder().setName('coinflip').setDescription('Flip a coin.'),
   new SlashCommandBuilder().setName('8ball').setDescription('Ask the magic 8-ball a question.').addStringOption((option) => option.setName('question').setDescription('Your question.').setMaxLength(250).setRequired(true)),
@@ -84,7 +88,7 @@ const client = new Client({
 const recentMessages = new Map();
 const spamCooldowns = new Map();
 const commandCooldowns = new Map();
-const commandList = '/ping, /help, /setup, /serverinfo, /userinfo, /avatar, /roll, /coinflip, /8ball, /choose, /rps, /ship, /roast, /fact, /poll, /announce, /clear, /kick, /ban';
+const commandList = '/ping, /help, /setup, /status, /membercount, /servericon, /invite, /permissions, /serverinfo, /userinfo, /avatar, /roll, /coinflip, /8ball, /choose, /rps, /ship, /roast, /fact, /poll, /announce, /clear, /kick, /ban';
 const eightBallAnswers = ['Absolutely yes.', 'Probably yes.', 'It is looking good.', 'Ask again later.', 'I am not sure yet.', 'Probably not.', 'The signs say no.', 'Absolutely not.'];
 const facts = ['The first video game easter egg is commonly credited to Adventure for the Atari 2600.', 'Discord was originally built for people who wanted an easier way to talk while gaming.', 'A good community grows faster when new players get a friendly welcome.', 'The best moderation tool is clear rules applied consistently.', 'Taking short breaks can make long gaming sessions more fun.'];
 const roasts = ['has the confidence of a final boss and the strategy of a tutorial bot.', 'could lose a game of rock paper scissors to a loading screen.', 'is proof that having a plan and following it are two different skills.', 'brings main-character energy to every side quest.', 'is not lagging; the brain is just buffering.'];
@@ -105,7 +109,8 @@ const commandHelp = new EmbedBuilder()
   .setTitle('Free Community Bot')
   .setDescription('Helpful tools for your server. Use a command below to get started.')
   .addFields(
-    { name: '📌 General', value: '`/ping` health • `/status` hosting status • `/serverinfo` server details • `/userinfo` member details • `/avatar` profile picture' },
+    { name: '📌 General', value: '`/ping` health • `/status` hosting status • `/membercount` members • `/serverinfo` server details • `/servericon` server icon • `/userinfo` member details • `/avatar` profile picture' },
+    { name: '🔗 Tools', value: '`/invite` bot invite link • `/permissions` channel permission check' },
     { name: '🎮 Fun & Games', value: '`/roll` dice • `/coinflip` coin • `/8ball` answer • `/choose` random choice • `/rps` battle • `/ship` friendship score • `/roast` playful roast • `/fact` fun fact • `/poll` poll' },
     { name: '📣 Community', value: '`/announce` post a polished announcement' },
     { name: '🛡️ Moderation', value: '`/clear` remove messages • `/kick` remove a member • `/ban` ban a member' },
@@ -175,7 +180,29 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   try {
-    if (interaction.commandName === 'ping') {
+    if (interaction.commandName === 'membercount') {
+    const humans = interaction.guild?.members.cache.filter((member) => !member.user.bot).size;
+    const bots = interaction.guild?.members.cache.filter((member) => member.user.bot).size;
+    await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x57f287).setTitle(`👥 ${interaction.guild.name} member count`).setDescription(`This server has **${interaction.guild.memberCount}** members.`).addFields(
+      { name: 'People', value: `${humans ?? 'Unavailable'}`, inline: true },
+      { name: 'Bots', value: `${bots ?? 'Unavailable'}`, inline: true },
+      { name: 'Server ID', value: interaction.guild.id, inline: true },
+    ).setFooter({ text: 'Counts use the members available to the bot' })] });
+  } else if (interaction.commandName === 'servericon') {
+    const icon = interaction.guild.iconURL({ size: 4096, extension: 'png' });
+    if (!icon) return interaction.reply({ embeds: [new EmbedBuilder().setColor(0xfee75c).setTitle('🖼️ No server icon').setDescription('This server has not set a custom icon yet.')], ephemeral: true });
+    await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle(`${interaction.guild.name} icon`).setImage(icon).setURL(icon).setFooter({ text: 'Click the title to open the full-size image' })] });
+  } else if (interaction.commandName === 'invite') {
+    const permissions = PermissionFlagsBits.ViewChannel | PermissionFlagsBits.SendMessages | PermissionFlagsBits.EmbedLinks | PermissionFlagsBits.AddReactions | PermissionFlagsBits.ManageMessages | PermissionFlagsBits.KickMembers | PermissionFlagsBits.BanMembers | PermissionFlagsBits.ModerateMembers | PermissionFlagsBits.ManageGuild;
+    const invite = `https://discord.com/oauth2/authorize?client_id=${client.user.id}&scope=bot%20applications.commands&permissions=${permissions.toString()}`;
+    await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle('🔗 Invite this bot').setDescription(`[Click here to invite me to another server](${invite})`).addFields({ name: 'Safety note', value: 'Review the permissions before authorizing. Never share your bot token.' }).setFooter({ text: 'Free community bot' })], ephemeral: true });
+  } else if (interaction.commandName === 'permissions') {
+    const me = interaction.guild.members.me;
+    const permissions = interaction.channel.permissionsFor(me);
+    const needed = ['ViewChannel', 'SendMessages', 'EmbedLinks', 'AddReactions', 'ManageMessages', 'KickMembers', 'BanMembers', 'ModerateMembers'];
+    const lines = needed.map((name) => `${permissions?.has(PermissionFlagsBits[name]) ? '✅' : '❌'} ${name}`).join('\n');
+    await interaction.reply({ embeds: [new EmbedBuilder().setColor(permissions?.has(PermissionFlagsBits.SendMessages) ? 0x57f287 : 0xed4245).setTitle('🔐 Channel permissions').setDescription(lines).addFields({ name: 'How to fix', value: 'Ask an administrator to update the bot role or this channel override. The bot role must also be above members it moderates.' })], ephemeral: true });
+  } else if (interaction.commandName === 'ping') {
     const uptime = Math.floor(process.uptime());
     const hours = Math.floor(uptime / 3600);
     const minutes = Math.floor((uptime % 3600) / 60);
