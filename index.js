@@ -27,10 +27,15 @@ const commands = [
     .addUserOption((option) => option.setName('user').setDescription('The member to inspect.')),
   new SlashCommandBuilder().setName('avatar').setDescription("Show a user's avatar.")
     .addUserOption((option) => option.setName('user').setDescription('The user whose avatar to show.')),
-  new SlashCommandBuilder().setName('poll').setDescription('Create a poll.')
-    .addStringOption((option) => option.setName('question').setDescription('The question to ask.').setRequired(true)),
-  new SlashCommandBuilder().setName('announce').setDescription('Post an announcement.')
-    .addStringOption((option) => option.setName('message').setDescription('Announcement text.').setRequired(true))
+  new SlashCommandBuilder().setName('poll').setDescription('Create a polished poll with up to four choices.')
+    .addStringOption((option) => option.setName('question').setDescription('The question to ask.').setMaxLength(250).setRequired(true))
+    .addStringOption((option) => option.setName('option1').setDescription('First choice.').setMaxLength(80).setRequired(true))
+    .addStringOption((option) => option.setName('option2').setDescription('Second choice.').setMaxLength(80).setRequired(true))
+    .addStringOption((option) => option.setName('option3').setDescription('Optional third choice.').setMaxLength(80))
+    .addStringOption((option) => option.setName('option4').setDescription('Optional fourth choice.').setMaxLength(80)),
+  new SlashCommandBuilder().setName('announce').setDescription('Post a polished announcement.')
+    .addStringOption((option) => option.setName('message').setDescription('Announcement text.').setMaxLength(1900).setRequired(true))
+    .addStringOption((option) => option.setName('title').setDescription('Optional announcement title.').setMaxLength(100))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
   new SlashCommandBuilder().setName('clear').setDescription('Delete recent messages.')
     .addIntegerOption((option) => option.setName('amount').setDescription('Number of messages, from 1 to 100.').setMinValue(1).setMaxValue(100).setRequired(true))
@@ -70,6 +75,17 @@ const client = new Client({
 const recentMessages = new Map();
 const spamCooldowns = new Map();
 const commandList = '/ping, /help, /setup, /serverinfo, /userinfo, /avatar, /poll, /announce, /clear, /kick, /ban';
+const commandHelp = new EmbedBuilder()
+  .setColor(0x5865f2)
+  .setTitle('Free Community Bot')
+  .setDescription('Helpful tools for your server. Use a command below to get started.')
+  .addFields(
+    { name: '📌 General', value: '`/ping` latency • `/serverinfo` server details • `/userinfo` member details • `/avatar` profile picture' },
+    { name: '🎮 Community', value: '`/poll` create a multi-choice poll • `/announce` post an announcement' },
+    { name: '🛡️ Moderation', value: '`/clear` remove messages • `/kick` remove a member • `/ban` ban a member' },
+    { name: '⚙️ Setup', value: '`/setup` shows the complete administrator setup guide' },
+  )
+  .setFooter({ text: 'Free to use • Keep the bot token private' });
 const setupEmbed = () => new EmbedBuilder()
   .setColor(0x57f287)
   .setTitle('Bot setup guide')
@@ -126,7 +142,7 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.commandName === 'ping') {
     await interaction.reply(`Pong! API latency is ${client.ws.ping}ms.`);
   } else if (interaction.commandName === 'help') {
-    await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle('Bot commands').setDescription(commandList).addFields({ name: 'Moderation', value: 'Moderation commands require the appropriate Discord permission.' }, { name: 'Setup', value: 'Run `/setup` for an administrator-friendly setup guide.' })] });
+    await interaction.reply({ embeds: [commandHelp], ephemeral: true });
   } else if (interaction.commandName === 'setup') {
     await interaction.reply({ embeds: [setupEmbed()], ephemeral: true });
   } else if (interaction.commandName === 'serverinfo') {
@@ -139,27 +155,37 @@ client.on('interactionCreate', async (interaction) => {
         { name: 'Owner', value: owner?.user.tag ?? 'Unavailable', inline: true },
         { name: 'Created', value: `<t:${Math.floor(interaction.guild.createdTimestamp / 1000)}:D>`, inline: true },
         { name: 'Server ID', value: interaction.guild.id, inline: true },
+        { name: 'Boosts', value: `${interaction.guild.premiumSubscriptionCount ?? 0} (level ${interaction.guild.premiumTier})`, inline: true },
+        { name: 'Verification', value: `${interaction.guild.verificationLevel}`, inline: true },
       );
     await interaction.reply({ embeds: [embed] });
   } else if (interaction.commandName === 'userinfo') {
     const user = interaction.options.getUser('user') ?? interaction.user;
     const member = await interaction.guild.members.fetch(user.id).catch(() => null);
+    const roles = member?.roles.cache.filter((role) => role.id !== interaction.guild.id).sort((a, b) => b.position - a.position).map((role) => role.name).slice(0, 8);
     await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle(`${user.tag} — user info`).setThumbnail(user.displayAvatarURL({ size: 256 })).addFields(
       { name: 'User ID', value: user.id, inline: true },
       { name: 'Joined server', value: member ? `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>` : 'Unknown', inline: true },
       { name: 'Account created', value: `<t:${Math.floor(user.createdTimestamp / 1000)}:R>`, inline: true },
-    )] });
+      { name: 'Roles', value: roles?.length ? roles.map((role) => `@${role}`).join(', ').slice(0, 1024) : 'No extra roles', inline: false },
+    ).setFooter({ text: `Requested by ${interaction.user.tag}` })] });
   } else if (interaction.commandName === 'avatar') {
     const user = interaction.options.getUser('user') ?? interaction.user;
     await interaction.reply({ embeds: [new EmbedBuilder().setColor(0x5865f2).setTitle(`${user.tag}'s avatar`).setImage(user.displayAvatarURL({ size: 1024, extension: 'png' }))] });
   } else if (interaction.commandName === 'poll') {
     const question = interaction.options.getString('question', true).trim();
-    if (question.length > 250) return interaction.reply({ content: 'Poll questions must be 250 characters or fewer.', ephemeral: true });
-    const poll = await interaction.reply({ content: `📊 **Poll**\n${question}\n\nReact with ✅ for yes or ❌ for no.`, fetchReply: true, allowedMentions: { parse: [] } });
-    await poll.react('✅');
-    await poll.react('❌');
+    const choices = ['option1', 'option2', 'option3', 'option4'].map((name) => interaction.options.getString(name)?.trim()).filter(Boolean);
+    const emojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣'];
+    if (new Set(choices.map((choice) => choice.toLowerCase())).size !== choices.length) return interaction.reply({ content: 'Poll choices must be different.', ephemeral: true });
+    const description = choices.map((choice, index) => `${emojis[index]} **${choice}**`).join('\n');
+    const pollEmbed = new EmbedBuilder().setColor(0xfee75c).setTitle('📊 Community Poll').setDescription(`**${question}**\n\n${description}`).setFooter({ text: `Created by ${interaction.user.tag} • React to vote` });
+    const poll = await interaction.reply({ embeds: [pollEmbed], fetchReply: true, allowedMentions: { parse: [] } });
+    for (const emoji of emojis.slice(0, choices.length)) await poll.react(emoji);
   } else if (interaction.commandName === 'announce') {
-    await interaction.reply({ content: `📢 **Announcement from ${interaction.user}:**\n${interaction.options.getString('message', true)}`, allowedMentions: { parse: [] } });
+    const message = interaction.options.getString('message', true).trim();
+    const title = interaction.options.getString('title')?.trim() || '📢 Announcement';
+    const announcement = new EmbedBuilder().setColor(0xed4245).setTitle(title).setDescription(message).setAuthor({ name: interaction.user.tag, iconURL: interaction.user.displayAvatarURL({ size: 128 }) }).setTimestamp().setFooter({ text: `${interaction.guild.name} • Official announcement` });
+    await interaction.reply({ embeds: [announcement], allowedMentions: { parse: [] } });
   } else if (interaction.commandName === 'clear') {
     const amount = interaction.options.getInteger('amount', true);
     if (!interaction.channel?.isTextBased() || !('bulkDelete' in interaction.channel)) return interaction.reply({ content: 'This command needs a text channel.', ephemeral: true });
