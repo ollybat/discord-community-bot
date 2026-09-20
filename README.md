@@ -1,6 +1,6 @@
 # Free Discord Community Bot
 
-A free-to-use Discord bot starter for communities and gaming servers. Anyone can invite their own instance and use the commands without a paid subscription.
+A free-to-use Discord bot starter for communities and gaming servers. Anyone can invite their own instance and use the commands without a paid subscription. Commands use private help responses, polished embeds, validation, and safer mention handling.
 
 > This repository contains the source code. It does not include a shared public bot token. Each owner should create and run their own bot instance.
 
@@ -11,8 +11,8 @@ A small Discord bot built with `discord.js` featuring:
 - `/setup` — gives server administrators a step-by-step setup guide.
 - `/serverinfo` — displays server membership, channels, roles, owner, creation date, and ID.
 - `/userinfo` and `/avatar` — inspect users.
-- `/poll` — create a yes/no reaction poll.
-- `/announce` — post an announcement (Manage Messages required).
+- `/poll` — create a polished poll with 2–4 choices and numbered reactions.
+- `/announce` — post a titled embed announcement (Manage Messages required).
 - `/clear` — delete 1–100 recent messages (Manage Messages required).
 - `/kick` and `/ban` — moderation actions with reasons.
 - Welcome messages and basic spam protection.
