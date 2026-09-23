@@ -7,13 +7,13 @@ A free, bot-only Discord community bot for sharing bot projects, helping members
 - `/setupserver` creates the complete starter layout
 - `/setup welcomer` configures welcome, commands, shop, and verification channels
 - `/setup tickets` configures panels, logs, ticket category, and 1–24 hour inactivity auto-close
-- `/setuproles` stores owner, co-owner, admin, and optional support roles
+- `/setuproles` stores owner, co-owner, admin, support, and verified-member roles
 - Interactive ticket buttons and category dropdowns
 - Ticket claim, close, logs, private permissions, duplicate-ticket protection, and persistent activity timestamps
-- `/bots` free bot shop browser
+- `/bots` and `/shop` free bot catalog browser with a detail dropdown
 - `/bot add`, `/bot list`, and `/bot remove` catalog management
-- `/ticketpanel` posts a new ticket UI
-- `/help`, `/config`, `/ping`, `/serverinfo`, and `/userinfo`
+- `/ticketpanel` posts a fresh ticket UI
+- `/help`, `/config`, `/ping`, `/stats`, `/rules`, `/verify`, `/serverinfo`, and `/userinfo`
 - `/purge`, `/slowmode`, `/lock`, `/unlock`, `/announce`, `/warn`, `/kick`, and `/ban`
 - Persistent JSON data on a Railway Volume
 - No AI calls, AI keys, external model providers, traffic forwarding, or website runtime
@@ -31,7 +31,7 @@ Never commit or share `DISCORD_TOKEN`.
 
 ## First server setup
 
-Run `/setupserver`, then optionally customize with `/setup welcomer`, `/setup tickets`, and `/setuproles`. Add bot listings with `/bot add`; users can browse them with `/bots`.
+Run `/setupserver`, then customize with `/setup welcomer`, `/setup tickets`, and `/setuproles`. Add bot listings with `/bot add`; members can browse them with `/shop` or `/bots`, then select a bot for its setup details.
 
 ## License
 
