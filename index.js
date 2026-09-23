@@ -83,8 +83,39 @@ client.on('messageCreate', async (message) => { if (message.author.bot || !messa
 setInterval(async () => { const now = Date.now(); for (const cfg of Object.values(configs)) { const hours = Number(cfg.tickets?.inactivityHours); if (!hours) continue; for (const [channelId, last] of Object.entries(cfg.tickets.activity ?? {})) if (now - last >= hours * 3600000) { const channel = client.channels.cache.get(channelId); if (channel) await closeTicket(channel, `${hours} hour(s) of inactivity`); } } }, 10 * 60 * 1000);
 
 client.on('interactionCreate', async (i) => {
-  if (i.isStringSelectMenu() && i.customId === 'ticket_type') { try { const channel = await openTicket(i.guild, i.user); await i.reply({ content: `Your ${i.values[0]} ticket is ready: ${channel}`, flags: 64 }); } catch (e) { await i.reply({ content: e.message, flags: 64 }); } return; }
-  if (i.isButton()) { if (i.customId === 'open_ticket') { try { const channel = await openTicket(i.guild, i.user); await i.reply({ content: channel ? `Your ticket is ready: ${channel}` : 'Unable to open a ticket.', flags: 64 }); } catch (e) { await i.reply({ content: e.message, flags: 64 }); } } else if (i.customId === 'close_ticket') { await i.reply('Closing this ticket…'); await closeTicket(i.channel, 'manual close'); } return; }
+  if (i.isStringSelectMenu() && i.customId === 'ticket_type') {
+    try {
+      await i.deferReply({ flags: 64 });
+      const channel = await openTicket(i.guild, i.user);
+      await i.editReply({ content: `Your ${i.values[0]} ticket is ready: ${channel}` });
+    } catch (e) {
+      console.error('[ticket_type]', e.message);
+      if (i.deferred) await i.editReply({ content: e.message }).catch(() => {});
+    }
+    return;
+  }
+  if (i.isButton()) {
+    if (i.customId === 'open_ticket') {
+      try {
+        await i.deferReply({ flags: 64 });
+        const channel = await openTicket(i.guild, i.user);
+        await i.editReply({ content: channel ? `Your ticket is ready: ${channel}` : 'Unable to open a ticket.' });
+      } catch (e) {
+        console.error('[open_ticket]', e.message);
+        if (i.deferred) await i.editReply({ content: e.message }).catch(() => {});
+      }
+    } else if (i.customId === 'close_ticket') {
+      try {
+        await i.deferReply();
+        await closeTicket(i.channel, 'manual close');
+        await i.editReply('Ticket closed.');
+      } catch (e) {
+        console.error('[close_ticket]', e.message);
+        if (i.deferred) await i.editReply('Unable to close this ticket.').catch(() => {});
+      }
+    }
+    return;
+  }
   if (!i.isChatInputCommand()) return;
   try {
     if (i.commandName === 'ping') return i.reply(`Pong! ${client.ws.ping}ms`);
