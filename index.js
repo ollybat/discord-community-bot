@@ -74,7 +74,10 @@ async function openTicket(guild, user) {
 }
 async function closeTicket(channel, reason = 'inactivity') { for (const cfg of Object.values(configs)) { const owner = Object.entries(cfg.openTickets ?? {}).find(([, id]) => id === channel.id)?.[0]; if (!owner) continue; delete cfg.openTickets[owner]; delete cfg.tickets.activity[channel.id]; await save(configFile, configs); const logChannel = channel.guild.channels.cache.get(cfg.tickets.logs); if (logChannel?.isTextBased()) await logChannel.send(`🗃️ Closed ${channel} — ${reason}.`).catch(() => {}); await channel.delete(`Ticket closed: ${reason}`).catch(() => {}); return; } }
 
-client.once('ready', (bot) => console.log(`Logged in as ${bot.user.tag} in ${client.guilds.cache.size} server(s).`));
+client.once('clientReady', (bot) => {
+  console.log(`Logged in as ${bot.user.tag} in ${client.guilds.cache.size} server(s).`);
+  if (client.guilds.cache.size === 0) console.error('The bot is online but is not installed in any server. Re-invite it with both bot and applications.commands scopes, then restart Railway.');
+});
 client.on('guildMemberAdd', async (member) => { const id = guildConfig(member.guild.id).welcome.welcomeChannel; const channel = member.guild.channels.cache.get(id); if (channel?.isTextBased()) await channel.send({ content: `Welcome ${member} to **${member.guild.name}**! Check the rules and visit the bot shop.`, allowedMentions: { users: [member.id] } }).catch(() => {}); });
 client.on('messageCreate', async (message) => { if (message.author.bot || !message.guild) return; const cfg = configs[message.guild.id]; if (cfg?.tickets?.activity?.[message.channel.id]) { cfg.tickets.activity[message.channel.id] = Date.now(); await save(configFile, configs); } });
 setInterval(async () => { const now = Date.now(); for (const cfg of Object.values(configs)) { const hours = Number(cfg.tickets?.inactivityHours); if (!hours) continue; for (const [channelId, last] of Object.entries(cfg.tickets.activity ?? {})) if (now - last >= hours * 3600000) { const channel = client.channels.cache.get(channelId); if (channel) await closeTicket(channel, `${hours} hour(s) of inactivity`); } } }, 10 * 60 * 1000);
