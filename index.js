@@ -34,7 +34,18 @@ const commands = [
 ].map((c) => c.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-await rest.put(process.env.GUILD_ID ? Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID) : Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
+try {
+  await rest.put(process.env.GUILD_ID ? Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID) : Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
+  console.log('Registered ' + commands.length + ' slash commands' + (process.env.GUILD_ID ? ' for the configured guild.' : ' globally.'));
+} catch (error) {
+  console.error('Slash-command registration failed:', error.message);
+  if (error.code === 50001 && process.env.GUILD_ID) {
+    console.error('Discord returned Missing Access. Make sure this bot is installed in GUILD_ID with the applications.commands scope, or remove GUILD_ID to register globally.');
+  } else {
+    console.error('Check CLIENT_ID, DISCORD_TOKEN, and Discord Developer Portal permissions.');
+  }
+  console.error('Continuing to connect to Discord; the bot can still run, but slash commands will appear after registration succeeds.');
+}
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 
 const guildConfig = (id) => configs[id] ??= { welcome: {}, roles: {}, tickets: {}, openTickets: {} };
