@@ -1,28 +1,37 @@
-# Free Discord Bot
+# Free Discord Bots — Community Bot
 
-A free, open-source Discord bot for sharing bots, guides, support, moderation, and community tools. This repository is bot-only: there is no website.
+A free, bot-only Discord community bot for sharing bot projects, helping members, running support tickets, and managing a polished server. No website and no AI.
 
-## Features
+## Highlights
 
-- `/setup welcomer` for welcome, command, shop, and verification channels
-- `/setuproles` for owner, co-owner, and admin roles
-- `/setupserver` creates a polished starter layout automatically
-- `/setup tickets` configures a button + dropdown ticket panel
-- Private tickets with manual close buttons and automatic inactivity closing
-- `/knowledge add`, `/knowledge list`, and `/knowledge remove` for bot guides
-- `/ask` answers from administrator-provided bot information and never invents missing instructions
-- Buttons, emojis, embeds, dropdown UI, role-safe permissions, and persistent data
+- `/setupserver` creates the complete starter layout
+- `/setup welcomer` configures welcome, commands, shop, and verification channels
+- `/setup tickets` configures panels, logs, ticket category, and 1–24 hour inactivity auto-close
+- `/setuproles` stores owner, co-owner, admin, and optional support roles
+- Interactive ticket buttons and category dropdowns
+- Ticket claim, close, logs, private permissions, duplicate-ticket protection, and persistent activity timestamps
+- `/bots` free bot shop browser
+- `/bot add`, `/bot list`, and `/bot remove` catalog management
+- `/ticketpanel` posts a new ticket UI
+- `/help`, `/config`, `/ping`, `/serverinfo`, and `/userinfo`
+- `/purge`, `/slowmode`, `/lock`, `/unlock`, `/announce`, `/warn`, `/kick`, and `/ban`
+- Persistent JSON data on a Railway Volume
+- No AI calls, AI keys, external model providers, traffic forwarding, or website runtime
 
-## Railway deployment
+## Railway
 
-1. Create a Railway service from this GitHub repository.
-2. Add a Railway Volume and mount it at `/data`.
+1. Deploy this repository as a Railway service.
+2. Add a Railway Volume mounted at `/data`.
 3. Add `DISCORD_TOKEN`, `CLIENT_ID`, and optionally `GUILD_ID`.
 4. Set `DATA_DIR=/data`.
 5. Enable Server Members Intent and Message Content Intent in the Discord Developer Portal.
-6. Give the bot the permissions it needs: View Channels, Send Messages, Embed Links, Read Message History, Manage Channels, Manage Roles where needed, and Manage Messages.
+6. Give the bot View Channels, Send Messages, Embed Links, Read Message History, Manage Channels, Manage Messages, and moderation permissions as needed.
 
-Never commit or share the bot token.
+Never commit or share `DISCORD_TOKEN`.
+
+## First server setup
+
+Run `/setupserver`, then optionally customize with `/setup welcomer`, `/setup tickets`, and `/setuproles`. Add bot listings with `/bot add`; users can browse them with `/bots`.
 
 ## License
 
