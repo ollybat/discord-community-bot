@@ -1,7 +1,7 @@
 {
   "name": "discord-community-bot",
-  "version": "1.1.0",
-  "description": "A free, polished Discord community bot with games, server tools, moderation, diagnostics, and friendly errors.",
+  "version": "1.2.0",
+  "description": "A free Discord community bot with moderation, persistent polls, support tickets, and bot catalog tools.",
   "private": false,
   "license": "MIT",
   "type": "module",
@@ -10,7 +10,8 @@
   },
   "scripts": {
     "start": "node index.js",
-    "check": "node --check index.js"
+    "check": "node --check index.js && node --check poll-state.js && node --test",
+    "test": "node --test"
   },
   "dependencies": {
     "discord.js": "^14.22.1",

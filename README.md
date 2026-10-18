@@ -4,19 +4,21 @@ A free, bot-only Discord community bot for sharing bot projects, helping members
 
 ## Highlights
 
-- `/setupserver` creates the complete starter layout
-- `/setup welcomer` configures welcome, commands, shop, and verification channels
-- `/setup tickets` configures panels, logs, ticket category, and 1–24 hour inactivity auto-close
-- `/setuproles` stores owner, co-owner, admin, support, and verified-member roles
-- Interactive ticket buttons and category dropdowns
-- Ticket claim, close, logs, private permissions, duplicate-ticket protection, and persistent activity timestamps
-- `/bots` and `/shop` free bot catalog browser with a detail dropdown
-- `/bot add`, `/bot list`, and `/bot remove` catalog management
-- `/ticketpanel` posts a fresh ticket UI
-- `/help`, `/config`, `/ping`, `/stats`, `/rules`, `/verify`, `/serverinfo`, and `/userinfo`
-- `/purge`, `/slowmode`, `/lock`, `/unlock`, `/announce`, `/warn`, `/kick`, and `/ban`
-- Persistent JSON data on a Railway Volume
+- **/setupserver** creates the complete starter layout
+- **/setup welcomer** configures welcome, commands, shop, and verification channels
+- **/setup tickets** configures panels, logs, category, and inactivity auto-close
+- Interactive support tickets with private permissions, claim/close controls, logs, and duplicate-ticket protection
+- **/poll** creates persistent 2–4 choice polls; voters can change their vote and the creator/moderators can close a poll
+- **/timeout** and **/untimeout** provide timed member moderation (1 minute–28 days)
+- **/warnings list** and **/warnings clear** manage recorded warnings
+- **/avatar** and **/membercount** add member utilities
+- **/bots** and **/shop** browse the free bot catalog; **/bot add/list/remove** manage it
+- **/help**, **/config**, **/ping**, **/stats**, **/rules**, **/verify**, **/serverinfo**, and **/userinfo**
+- **/purge**, **/slowmode**, **/lock**, **/unlock**, **/announce**, **/warn**, **/kick**, and **/ban**
+- Persistent JSON data on a Railway Volume; malformed data fails visibly rather than being silently replaced
 - No AI calls, AI keys, external model providers, traffic forwarding, or website runtime
+
+Discord limits an application to 100 top-level global slash commands (with separate guild-scoped registrations). This bot checks that limit at startup; it focuses on implemented features instead of padding the command list with non-working placeholders.
 
 ## Railway
 
