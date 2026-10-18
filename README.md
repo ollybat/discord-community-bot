@@ -27,7 +27,7 @@ Discord limits an application to 100 top-level global slash commands (with separ
 3. Add `DISCORD_TOKEN`, `CLIENT_ID`, and optionally `GUILD_ID`.
 4. Set `DATA_DIR=/data`.
 5. Enable Server Members Intent and Message Content Intent in the Discord Developer Portal.
-6. Give the bot View Channels, Send Messages, Embed Links, Read Message History, Manage Channels, Manage Messages, and moderation permissions as needed.
+6. Give the bot View Channels, Send Messages, Embed Links, Read Message History, Manage Channels, Manage Messages, Moderate Members, and other required moderation permissions.
 
 Never commit or share `DISCORD_TOKEN`.
 
